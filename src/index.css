@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700;800&family=Outfit:wght@400;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@keyframes fly-to-cart {
+  0% {
+    transform: scale(1.5) translate(0, 0);
+    opacity: 1;
+    filter: drop-shadow(0 0 8px #7B52DE);
+  }
+  40% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 12px #9D00FF);
+  }
+  100% {
+    left: calc(100vw - 60px);
+    top: 30px;
+    transform: scale(0.3) translate(0, 0);
+    opacity: 0;
+  }
+}
+
+.animate-fly {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7B52DE 0%, #A78BFA 100%);
+  animation: fly-to-cart 1.0s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+/* Base styling tweaks for fluid responsive scrolls */
+html {
+  scroll-behavior: smooth;
+}
+body {
+  background-color: #050505;
+  color: #F0F0F0;
+  font-family: var(--font-sans);
+}
+

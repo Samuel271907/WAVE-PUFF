@@ -1,0 +1,6 @@
+{
+  "name": "Wave Puff",
+  "description": "Premium e-commerce platform for exotic vapes with real-time catalogs, interactive cart animations, and WhatsApp consultation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
