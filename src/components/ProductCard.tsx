@@ -50,7 +50,7 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
       {/* PRODUCT IMAGE GRADIENT OR REAL IMAGE VISUAL */}
       <div
         onClick={() => onSelectProduct(product)}
-        className="relative flex aspect-square cursor-pointer items-center justify-center p-6 bg-white/[0.01]"
+        className="relative flex aspect-square cursor-pointer items-center justify-center p-0 bg-white/[0.01]"
       >
         {/* Colorful visual aura */}
         <div 
@@ -60,25 +60,26 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
         
         {/* Brutalist device silhouette / Real Image Asset */}
         {(activeImage.includes('.') || activeImage.includes('/')) ? (
-          <div className="relative flex h-40 w-40 items-center justify-center rounded-none border border-white/10 bg-[#050505] p-2 shadow-xl transition-all duration-500 group-hover:rotate-1 group-hover:scale-105 overflow-hidden">
+          <div className="relative flex h-full w-full items-center justify-center rounded-none border-b border-white/10 bg-[#050505] p-0 shadow-xl transition-all duration-500 overflow-hidden">
             <div
               className="absolute inset-2 rounded-none opacity-20 blur-xl bg-[#7B52DE]"
             />
             <img 
+              key={activeImage}
               src={activeImage} 
               alt={product.name} 
               referrerPolicy="no-referrer" 
-              className="relative z-10 h-full w-full object-cover rounded-none"
+              className="relative z-10 h-full w-full object-cover rounded-none animate-fade-in"
             />
             {/* Quick Specifications Overlay */}
-            <div className="absolute bottom-2 left-0 right-0 z-20 text-center">
-              <span className="rounded-none bg-[#050505] border border-white/10 py-0.5 px-2 text-[8px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
+            <div className="absolute bottom-3 left-0 right-0 z-20 text-center">
+              <span className="rounded-none bg-[#050505]/90 border border-white/10 py-1 px-3 text-[8px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
                 {product.puffs ? `${product.puffs} Puffs` : product.capacity}
               </span>
             </div>
           </div>
         ) : (
-          <div className="relative flex h-40 w-40 items-center justify-center rounded-none border border-white/10 bg-[#050505] p-4 shadow-xl transition-all duration-500 group-hover:rotate-1 group-hover:scale-105">
+          <div className="relative flex h-full w-full items-center justify-center rounded-none border-b border-white/10 bg-[#050505] p-4 shadow-xl transition-all duration-500">
             <div
               className="absolute inset-2 rounded-none opacity-40 blur-xl"
               style={{ background: activeImage }}
@@ -86,19 +87,20 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
             
             <div className="relative z-10 flex flex-col items-center">
               {/* Elegant stylized custom SVG representation of flavor and model */}
-              <div className="h-20 w-12 rounded-none bg-[#050505] border border-white/20 p-1.5 flex flex-col justify-between shadow-2xl">
+              <div className="h-28 w-16 rounded-none bg-[#050505] border border-white/20 p-2 flex flex-col justify-between shadow-2xl">
                 <div className="h-1.5 w-1/2 mx-auto bg-white/40" /> {/* Drip tip */}
                 <div
-                  className="h-10 w-full rounded-none"
+                  key={selectedColorIndex}
+                  className="h-14 w-full rounded-none animate-fade-in"
                   style={{ background: product.colors[selectedColorIndex]?.hex || activeImage }}
                 />
-                <span className="font-mono text-[6px] text-center text-white/30 block uppercase tracking-tighter">WP-LAB</span>
+                <span className="font-mono text-[7px] text-center text-white/30 block uppercase tracking-tighter">WP-LAB</span>
               </div>
             </div>
 
             {/* Quick Specifications Overlay */}
-            <div className="absolute bottom-2 left-0 right-0 text-center">
-              <span className="rounded-none bg-[#050505] border border-white/10 py-0.5 px-2 text-[8px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
+            <div className="absolute bottom-3 left-0 right-0 text-center">
+              <span className="rounded-none bg-[#050505]/90 border border-white/10 py-1 px-3 text-[8px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
                 {product.puffs ? `${product.puffs} Puffs` : product.capacity}
               </span>
             </div>

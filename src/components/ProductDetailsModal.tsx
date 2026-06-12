@@ -107,10 +107,11 @@ export default function ProductDetailsModal({
                 {(activeImage.includes('.') || activeImage.includes('/')) ? (
                   <div className="relative h-full w-full flex flex-col items-center justify-center p-2">
                     <img 
+                      key={activeImage}
                       src={activeImage} 
                       alt={product.name} 
                       referrerPolicy="no-referrer" 
-                      className="h-full w-full object-contain rounded-none"
+                      className="h-full w-full object-contain rounded-none animate-fade-in"
                     />
                     {product.puffs && (
                       <span className="absolute bottom-4 z-20 rounded-none bg-[#050505]/95 border border-white/10 py-1 px-3.5 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
@@ -121,7 +122,8 @@ export default function ProductDetailsModal({
                 ) : (
                   <>
                     <div
-                      className="absolute inset-4 rounded-none opacity-20 blur-xl"
+                      key={selectedColorIndex}
+                      className="absolute inset-4 rounded-none opacity-20 blur-xl animate-fade-in"
                       style={{ background: activeColor.hex }}
                     />
                     
@@ -129,7 +131,8 @@ export default function ProductDetailsModal({
                       <div className="h-32 w-20 rounded-none bg-[#050505] border-2 border-white/15 p-2 flex flex-col justify-between shadow-2xl">
                         <div className="h-3 w-3/4 mx-auto bg-white/20" />
                         <div
-                          className="h-14 w-full rounded-none transition-all"
+                          key={selectedColorIndex}
+                          className="h-14 w-full rounded-none animate-fade-in"
                           style={{ background: activeColor.hex }}
                         />
                         <div className="h-2 w-full bg-white/10" />
