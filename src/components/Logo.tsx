@@ -7,7 +7,27 @@ interface LogoProps {
 
 export default function Logo({ className = "h-full w-full", showText = true }: LogoProps) {
   const [error, setError] = useState(false);
-  const logoUrl = "https://i.ibb.co/jkkRbvLP/logo.jpg";
+  const [candidateIndex, setCandidateIndex] = useState(0);
+
+  const CANDIDATES = [
+    "https://i.ibb.co/BVYZWTV2/logo.png",
+    "https://i.ibb.co/BVYZWTV2/logo.jpg",
+    "https://i.ibb.co/BVYZWTV2/image.png",
+    "https://i.ibb.co/BVYZWTV2/image.jpg",
+    "https://i.ibb.co/BVYZWTV/logo.png",
+    "https://i.ibb.co/BVYZWTV/logo.jpg",
+    "https://i.ibb.co/jkkRbvLP/logo.jpg"
+  ];
+
+  const currentSrc = CANDIDATES[candidateIndex];
+
+  const handleImgError = () => {
+    if (candidateIndex < CANDIDATES.length - 1) {
+      setCandidateIndex((prev) => prev + 1);
+    } else {
+      setError(true);
+    }
+  };
 
   if (error) {
     // Elegant fallback outline in case the image fails to load
@@ -33,11 +53,11 @@ export default function Logo({ className = "h-full w-full", showText = true }: L
 
   return (
     <img
-      src={logoUrl}
+      src={currentSrc}
       alt="Wave Puff"
       className={`${className} object-cover`}
       referrerPolicy="no-referrer"
-      onError={() => setError(true)}
+      onError={handleImgError}
     />
   );
 }

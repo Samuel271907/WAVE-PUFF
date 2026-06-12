@@ -14,6 +14,7 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
   const [isAdded, setIsAdded] = useState(false);
 
   const activeColorName = product.colors[selectedColorIndex]?.name || 'Estándar';
+  const activeImage = product.colors[selectedColorIndex]?.image || product.image;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,40 +47,63 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
         )}
       </div>
 
-      {/* PRODUCT IMAGE GRADIENT VISUAL PORTRAYAL */}
+      {/* PRODUCT IMAGE GRADIENT OR REAL IMAGE VISUAL */}
       <div
         onClick={() => onSelectProduct(product)}
         className="relative flex aspect-square cursor-pointer items-center justify-center p-6 bg-white/[0.01]"
       >
         {/* Colorful visual aura */}
-        <div className="absolute inset-16 -z-10 rounded-full blur-[60px] opacity-15 transition-all duration-500 group-hover:scale-125" style={{ background: product.image }} />
+        <div 
+          className="absolute inset-16 -z-10 rounded-full blur-[60px] opacity-15 transition-all duration-500 group-hover:scale-125" 
+          style={{ background: (activeImage.includes('.') || activeImage.includes('/')) ? '#7B52DE' : activeImage }} 
+        />
         
-        {/* Brutalist device silhouette */}
-        <div className="relative flex h-40 w-40 items-center justify-center rounded-none border border-white/10 bg-[#050505] p-4 shadow-xl transition-all duration-500 group-hover:rotate-1 group-hover:scale-105">
-          <div
-            className="absolute inset-2 rounded-none opacity-40 blur-xl"
-            style={{ background: product.image }}
-          />
-          
-          <div className="relative z-10 flex flex-col items-center">
-            {/* Elegant stylized custom SVG representation of flavor and model */}
-            <div className="h-20 w-12 rounded-none bg-[#050505] border border-white/20 p-1.5 flex flex-col justify-between shadow-2xl">
-              <div className="h-1.5 w-1/2 mx-auto bg-white/40" /> {/* Drip tip */}
-              <div
-                className="h-10 w-full rounded-none"
-                style={{ background: product.colors[selectedColorIndex]?.hex || product.image }}
-              />
-              <span className="font-mono text-[6px] text-center text-white/30 block uppercase tracking-tighter">WP-LAB</span>
+        {/* Brutalist device silhouette / Real Image Asset */}
+        {(activeImage.includes('.') || activeImage.includes('/')) ? (
+          <div className="relative flex h-40 w-40 items-center justify-center rounded-none border border-white/10 bg-[#050505] p-2 shadow-xl transition-all duration-500 group-hover:rotate-1 group-hover:scale-105 overflow-hidden">
+            <div
+              className="absolute inset-2 rounded-none opacity-20 blur-xl bg-[#7B52DE]"
+            />
+            <img 
+              src={activeImage} 
+              alt={product.name} 
+              referrerPolicy="no-referrer" 
+              className="relative z-10 h-full w-full object-cover rounded-none"
+            />
+            {/* Quick Specifications Overlay */}
+            <div className="absolute bottom-2 left-0 right-0 z-20 text-center">
+              <span className="rounded-none bg-[#050505] border border-white/10 py-0.5 px-2 text-[8px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
+                {product.puffs ? `${product.puffs} Puffs` : product.capacity}
+              </span>
             </div>
           </div>
+        ) : (
+          <div className="relative flex h-40 w-40 items-center justify-center rounded-none border border-white/10 bg-[#050505] p-4 shadow-xl transition-all duration-500 group-hover:rotate-1 group-hover:scale-105">
+            <div
+              className="absolute inset-2 rounded-none opacity-40 blur-xl"
+              style={{ background: activeImage }}
+            />
+            
+            <div className="relative z-10 flex flex-col items-center">
+              {/* Elegant stylized custom SVG representation of flavor and model */}
+              <div className="h-20 w-12 rounded-none bg-[#050505] border border-white/20 p-1.5 flex flex-col justify-between shadow-2xl">
+                <div className="h-1.5 w-1/2 mx-auto bg-white/40" /> {/* Drip tip */}
+                <div
+                  className="h-10 w-full rounded-none"
+                  style={{ background: product.colors[selectedColorIndex]?.hex || activeImage }}
+                />
+                <span className="font-mono text-[6px] text-center text-white/30 block uppercase tracking-tighter">WP-LAB</span>
+              </div>
+            </div>
 
-          {/* Quick Specifications Overlay */}
-          <div className="absolute bottom-2 left-0 right-0 text-center">
-            <span className="rounded-none bg-[#050505] border border-white/10 py-0.5 px-2 text-[8px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
-              {product.puffs ? `${product.puffs} Puffs` : product.capacity}
-            </span>
+            {/* Quick Specifications Overlay */}
+            <div className="absolute bottom-2 left-0 right-0 text-center">
+              <span className="rounded-none bg-[#050505] border border-white/10 py-0.5 px-2 text-[8px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
+                {product.puffs ? `${product.puffs} Puffs` : product.capacity}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Eye Details Hover Icon */}
         <div className="absolute inset-0 flex items-center justify-center bg-[#050505]/65 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -145,9 +169,16 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
         <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
           <div className="flex flex-col">
             <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] leading-none mb-1">PRECIO</span>
-            <span className="text-lg font-black tracking-tighter text-white">
-              ${product.price.toLocaleString('es-CO')}
-            </span>
+            <div className="flex items-baseline gap-2">
+              {product.originalPrice && (
+                <span className="text-xs font-bold line-through text-white/40">
+                  ${product.originalPrice.toLocaleString('es-CO')}
+                </span>
+              )}
+              <span className="text-lg font-black tracking-tighter text-white">
+                ${product.price.toLocaleString('es-CO')}
+              </span>
+            </div>
           </div>
 
           <button

@@ -55,33 +55,28 @@ export default function Header({ cartCount, onOpenCart, onSelectProduct }: Heade
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#050505]/90 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
-        {/* LOGO AREA */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-[45px] w-[45px] items-center justify-center border border-white/10 bg-[#151515] p-[2px] transition-transform duration-300 hover:rotate-6 overflow-hidden">
-            <Logo showText={false} className="w-[45px] h-[45px]" />
-            {/* Pulsing glow point matching logo purple theme */}
-            <span className="absolute -top-1 -right-1 flex h-2 w-2 z-10">
+        {/* LOGO AREA - POPPING 3D EFFECT WITHOUT BOX CONTAINER */}
+        <div className="flex items-center gap-4">
+          <div className="relative group/logo flex h-[105px] w-[105px] md:h-[120px] md:w-[120px] -mt-3 -mb-8 md:-mb-10 items-center justify-center transition-all duration-300 hover:rotate-6 hover:scale-120 z-50 transform-gpu">
+            <Logo showText={false} className="w-full h-full object-contain filter drop-shadow-[0_0_20px_rgba(123,82,222,0.85)] hover:drop-shadow-[0_0_35px_rgba(167,139,250,1.0)] transition-all duration-300" />
+            {/* Pulsing glow point near the logo */}
+            <span className="absolute top-2 right-2 flex h-4 w-4 z-10">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#A78BFA] opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#7B52DE]"></span>
+              <span className="relative inline-flex h-4 w-4 rounded-full bg-[#7B52DE] border border-white/40"></span>
             </span>
           </div>
           
           <div className="flex flex-col">
-            <span className="font-sans text-2xl font-black tracking-tighter uppercase text-white leading-none">
-              Wave<span className="text-transparent" style={{ WebkitTextStroke: '1px #7B52DE' }}>Puff</span>
-            </span>
-            <span className="hidden font-mono text-[9px] tracking-[0.2em] text-[#A78BFA] uppercase sm:block mt-0.5 font-bold">
-              Premium Vapor
+            <span className="font-sans text-3xl sm:text-4xl md:text-5xl font-black tracking-tight uppercase text-white leading-none flex items-center gap-1 hover:scale-105 transition-transform duration-300">
+              <span className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">Wave</span>
+              <span className="bg-gradient-to-r from-[#8B5CF6] via-[#A78BFA] to-[#C084FC] bg-clip-text text-transparent font-black drop-shadow-[0_0_25px_rgba(167,139,250,0.6)]">Puff</span>
             </span>
           </div>
         </div>
 
         {/* COMPACT INTUITIVE NAVIGATION */}
-        <nav className="hidden lg:flex gap-8 text-[11px] font-black uppercase tracking-[0.25em] text-white/50">
-          <a href="#catalog-anchor" className="hover:text-[#7B52DE] transition-colors">The Lab</a>
-          <a href="#catalog-anchor" className="hover:text-[#7B52DE] transition-colors text-[#7B52DE]">Devices</a>
-          <a href="#catalog-anchor" className="hover:text-[#7B52DE] transition-colors">Elixirs</a>
-          <a href="#catalog-anchor" className="hover:text-[#7B52DE] transition-colors">VIP Club</a>
+        <nav className="hidden lg:flex items-center gap-8 text-[11px] font-black uppercase tracking-[0.25em] text-white/50 lg:ml-24">
+          <a href="#catalog-anchor" className="relative -top-[2px] hover:text-[#7B52DE] transition-colors text-[#7B52DE]">Productos</a>
         </nav>
 
         {/* SEARCH WITH AUTOCOMPLETE */}
@@ -158,12 +153,6 @@ export default function Header({ cartCount, onOpenCart, onSelectProduct }: Heade
         {/* ACTIONS & NAVIGATION */}
         <div className="flex items-center gap-4">
           
-          {/* Sabor exótico indicator */}
-          <div className="hidden items-center gap-1.5 rounded-none border border-[#7B52DE]/30 bg-[#7B52DE]/10 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#7B52DE] lg:flex">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Envío Gratis &gt; $45.000</span>
-          </div>
-
           {/* CART TRIGGER BUTTON */}
           <button
             id="open-cart-btn"

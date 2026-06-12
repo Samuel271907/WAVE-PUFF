@@ -308,15 +308,16 @@ export default function App() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             
             <div className="md:col-span-2">
-              <div className="flex items-center gap-3">
-                <div className="relative flex h-12 w-12 items-center justify-center border border-white/10 bg-[#151515] p-[2px]">
-                  <Logo showText={false} />
+              <div className="flex items-center gap-4">
+                <div className="relative flex h-24 w-24 items-center justify-center transition-all duration-300 hover:scale-115 hover:rotate-3 group/footer-logo">
+                  <Logo showText={false} className="object-contain w-full h-full filter drop-shadow-[0_0_20px_rgba(123,82,222,0.7)] group-hover/footer-logo:drop-shadow-[0_0_30px_rgba(167,139,250,0.9)] transition-all duration-300" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-sans text-xl font-black uppercase tracking-wider text-white leading-none">
-                    Wave<span className="text-[#7B52DE]">Puff</span>
+                  <span className="font-sans text-3xl sm:text-4xl font-black uppercase tracking-wider text-white leading-none flex items-center gap-1">
+                    <span className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">Wave</span>
+                    <span className="bg-gradient-to-r from-[#8B5CF6] via-[#A78BFA] to-purple-400 bg-clip-text text-transparent font-black drop-shadow-[0_0_20px_rgba(167,139,250,0.5)]">Puff</span>
                   </span>
-                  <span className="font-mono text-[8px] tracking-[0.2em] text-[#A78BFA]/70 uppercase mt-0.5">
+                  <span className="font-mono text-[11px] tracking-[0.2em] text-[#A78BFA] uppercase mt-1 font-extrabold">
                     Premium Vapor
                   </span>
                 </div>

@@ -14,12 +14,13 @@ export interface Product {
   category: 'vapers' | 'capsulas' | 'baterias';
   categoryLabel: string;
   price: number;
+  originalPrice?: number;
   rating: number;
   reviewsCount: number;
   description: string;
   image: string; // Product color gradient or thumbnail visual
   features: string[];
-  colors: { name: string; hex: string }[];
+  colors: { name: string; hex: string; image?: string }[];
   puffs?: number;
   nicotine?: string;
   battery?: string;

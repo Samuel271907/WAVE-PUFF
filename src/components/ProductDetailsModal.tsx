@@ -32,6 +32,7 @@ export default function ProductDetailsModal({
   }, [localReviews]);
 
   const activeColor = product.colors[selectedColorIndex] || { name: 'Estándar', hex: '#6366f1' };
+  const activeImage = activeColor.image || product.image;
 
   const handleAdd = (e: React.MouseEvent) => {
     onAddToCart(product, activeColor.name, e);
@@ -95,61 +96,72 @@ export default function ProductDetailsModal({
         <div className="flex-grow overflow-y-auto p-6 lg:p-8">
           <div className="grid gap-8 lg:grid-cols-12">
             
-            {/* LEFT SIDE: PRODUCT PHOTO SIMULATION */}
+            {/* LEFT SIDE: PRODUCT PHOTO OR SIMULATION */}
             <div className="relative flex flex-col items-center justify-center lg:col-span-5">
               <div
                 className="absolute inset-4 rounded-full opacity-10 blur-3xl"
-                style={{ background: product.image }}
+                style={{ background: (activeImage.includes('.') || activeImage.includes('/')) ? '#7B52DE' : activeImage }}
               />
               
-              <div className="relative flex aspect-square w-full max-w-[280px] items-center justify-center rounded-none border border-white/10 bg-[#050505] p-6 shadow-2xl">
-                <div
-                  className="absolute inset-4 rounded-none opacity-20 blur-xl"
-                  style={{ background: activeColor.hex }}
-                />
-                
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="h-32 w-20 rounded-none bg-[#050505] border-2 border-white/15 p-2 flex flex-col justify-between shadow-2xl">
-                    <div className="h-3 w-3/4 mx-auto bg-white/20" />
+              <div className="relative flex aspect-square w-full max-w-[280px] items-center justify-center rounded-none border border-white/10 bg-[#050505] p-2 shadow-2xl overflow-hidden">
+                {(activeImage.includes('.') || activeImage.includes('/')) ? (
+                  <div className="relative h-full w-full flex flex-col items-center justify-center p-2">
+                    <img 
+                      src={activeImage} 
+                      alt={product.name} 
+                      referrerPolicy="no-referrer" 
+                      className="h-full w-full object-contain rounded-none"
+                    />
+                    {product.puffs && (
+                      <span className="absolute bottom-4 z-20 rounded-none bg-[#050505]/95 border border-white/10 py-1 px-3.5 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
+                        {product.puffs.toLocaleString()} PUFFS
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <>
                     <div
-                      className="h-14 w-full rounded-none transition-all"
+                      className="absolute inset-4 rounded-none opacity-20 blur-xl"
                       style={{ background: activeColor.hex }}
                     />
-                    <div className="h-2 w-full bg-white/10" />
-                  </div>
-                  
-                  {product.puffs && (
-                    <span className="mt-5 rounded-none bg-[#050505] border border-white/10 py-1 px-3.5 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
-                      {product.puffs.toLocaleString()} PUFFS
-                    </span>
-                  )}
-                </div>
+                    
+                    <div className="relative z-10 flex flex-col items-center">
+                      <div className="h-32 w-20 rounded-none bg-[#050505] border-2 border-white/15 p-2 flex flex-col justify-between shadow-2xl">
+                        <div className="h-3 w-3/4 mx-auto bg-white/20" />
+                        <div
+                          className="h-14 w-full rounded-none transition-all"
+                          style={{ background: activeColor.hex }}
+                        />
+                        <div className="h-2 w-full bg-white/10" />
+                      </div>
+                      
+                      {product.puffs && (
+                        <span className="mt-5 rounded-none bg-[#050505] border border-white/10 py-1 px-3.5 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
+                          {product.puffs.toLocaleString()} PUFFS
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 {/* Like Button */}
                 <button
                   type="button"
                   onClick={() => setLiked(!liked)}
-                  className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-none border border-white/10 bg-[#050505] text-white/50 transition-colors hover:border-[#7B52DE] hover:text-[#7B52DE]"
+                  className="absolute top-4 right-4 z-20 flex h-8 w-8 items-center justify-center rounded-none border border-white/10 bg-[#050505]/85 text-white/50 transition-colors hover:border-[#7B52DE] hover:text-[#7B52DE]"
                 >
                   <Heart className={`h-4.5 w-4.5 ${liked ? 'fill-[#7B52DE] text-[#7B52DE] border-none' : ''}`} />
                 </button>
               </div>
 
               {/* Badges details bottom */}
-              <div className="mt-6 flex gap-4 w-full">
-                <div className="flex-1 rounded-none border border-white/10 bg-white/5 p-3.5 text-center">
+              <div className="mt-6 w-full">
+                <div className="rounded-none border border-white/10 bg-white/5 p-3.5 text-center">
                   <div className="flex justify-center text-[#A78BFA] mb-1.5">
                     <Award className="h-4 w-4" />
                   </div>
                   <div className="font-mono text-[8px] uppercase tracking-widest text-white/40">Fabricante</div>
                   <div className="text-xs font-black uppercase tracking-wider text-white mt-1">{product.brand}</div>
-                </div>
-                <div className="flex-1 rounded-none border border-white/10 bg-white/5 p-3.5 text-center">
-                  <div className="flex justify-center text-[#7B52DE] mb-1.5">
-                    <Shield className="h-4 w-4" />
-                  </div>
-                  <div className="font-mono text-[8px] uppercase tracking-widest text-white/40">Garantía</div>
-                  <div className="text-xs font-black uppercase tracking-wider text-white mt-1">30 Días</div>
                 </div>
               </div>
             </div>
@@ -165,9 +177,16 @@ export default function ProductDetailsModal({
 
               {/* Price row */}
               <div className="mt-4 flex items-center gap-4">
-                <span className="text-2xl font-black tracking-tighter text-[#7B52DE]">
-                  ${product.price.toLocaleString('es-CO')}
-                </span>
+                <div className="flex items-baseline gap-2.5">
+                  {product.originalPrice && (
+                    <span className="text-base font-bold line-through text-white/40">
+                      ${product.originalPrice.toLocaleString('es-CO')}
+                    </span>
+                  )}
+                  <span className="text-2xl font-black tracking-tighter text-[#7B52DE]">
+                    ${product.price.toLocaleString('es-CO')}
+                  </span>
+                </div>
                 <span className="rounded-none bg-[#7B52DE]/10 border border-[#7B52DE]/30 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#A78BFA]">
                   Envío Gratis Disp.
                 </span>
@@ -236,25 +255,7 @@ export default function ProductDetailsModal({
               <div className="mt-6 flex-1 min-h-[220px]">
                 {activeTab === 'specs' ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {product.nicotine && (
-                        <div className="rounded-none bg-white/5 p-4 border border-white/10">
-                          <span className="font-mono text-[9px] text-white/30 uppercase tracking-widest block mb-1">Concentración</span>
-                          <div className="text-sm font-black uppercase text-white mt-0.5">{product.nicotine}</div>
-                        </div>
-                      )}
-                      {product.battery && (
-                        <div className="rounded-none bg-white/5 p-4 border border-white/10">
-                          <span className="font-mono text-[9px] text-white/30 uppercase tracking-widest block mb-1">Batería</span>
-                          <div className="text-sm font-black uppercase text-white mt-0.5">{product.battery}</div>
-                        </div>
-                      )}
-                      {product.capacity && (
-                        <div className="rounded-none bg-white/5 p-4 border border-white/10">
-                          <span className="font-mono text-[9px] text-white/30 uppercase tracking-widest block mb-1">Capacidad Líquido</span>
-                          <div className="text-sm font-black uppercase text-white mt-0.5">{product.capacity}</div>
-                        </div>
-                      )}
+                    <div className="w-full">
                       {product.puffs && (
                         <div className="rounded-none bg-white/5 p-4 border border-white/10">
                           <span className="font-mono text-[9px] text-white/30 uppercase tracking-widest block mb-1">Rendimiento</span>

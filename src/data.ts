@@ -1,4 +1,8 @@
 import { Product, FAQItem } from './types';
+import easeYellowImg from './assets/images/original_ease_yellow.jpg';
+import easePurpleImg from './assets/images/original_ease_purple.jpg';
+import easeGreenImg from './assets/images/original_ease_green.jpg';
+import capsulaNacionalImg from './assets/images/capsula_nacional.jpg';
 
 export const FAQ_ITEMS: FAQItem[] = [
   {
@@ -21,47 +25,20 @@ export const FAQ_ITEMS: FAQItem[] = [
 
 export const PRODUCTS: Product[] = [
   {
-    id: 'premium-vaper',
-    name: 'Vaper Wave Puff Premium',
-    brand: 'Wave Puff',
-    category: 'vapers',
-    categoryLabel: 'Vapers',
-    price: 110000,
-    rating: 5.0,
-    reviewsCount: 148,
-    description: 'Kit de vaporizador premium con batería integrada de larga duración, regulador de potencia y boquilla ergonómica. Ofrece una experiencia de caladas súper suaves y máxima nitidez de sabor.',
-    image: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)',
-    features: ['Batería interna de gran duración', 'Control de entrada de flujo de aire ajustable', 'Diseño metálico ultra-resistente y premium', 'Indicador inteligente LED'],
-    colors: [
-      { name: 'Violeta Eléctrico', hex: '#8B5CF6' },
-      { name: 'Negro Mate', hex: '#111827' }
-    ],
-    nicotine: 'Regulable',
-    battery: '1100mAh',
-    capacity: '2.0ml Recargable',
-    stock: 15,
-    isPopular: true,
-    isNew: true,
-    reviews: [
-      { id: 'v1', name: 'Alfonso M.', rating: 5, comment: 'La duración de la batería es asombrosa, y el acabado violeta mate se ve increíble.', date: '2026-05-28', verified: true },
-      { id: 'v2', name: 'Laura D.', rating: 5, comment: 'Excelente equipo vaper, liviano y con una potencia excelente.', date: '2026-05-25', verified: true }
-    ]
-  },
-  {
     id: 'capsula-destilado-nacional',
-    name: 'Cápsula de Destilado Nacional',
+    name: 'CÁPSULA NACIONAL 1ML',
     brand: 'Nacional',
     category: 'capsulas',
     categoryLabel: 'Cápsulas',
     price: 45000,
+    originalPrice: 50000,
     rating: 4.8,
     reviewsCount: 92,
     description: 'Cápsula armada con destilado nacional premium seleccionada con alto nivel de pureza y enriquecida con terpenos orgánicos del país para un sabor incomparable.',
-    image: 'linear-gradient(135deg, #FF6B6B 0%, #D63031 100%)',
+    image: capsulaNacionalImg,
     features: ['Destilado premium 100% nacional', 'Terpenos botánicos seleccionados', 'Compatible con rosca estándar 510/USB', 'Sistema anti-filtración doble'],
     colors: [
-      { name: 'Arándano Natural', hex: '#3B82F6' },
-      { name: 'Mango Haze', hex: '#F59E0B' }
+      { name: 'Blanco', hex: '#FFFFFF', image: capsulaNacionalImg }
     ],
     nicotine: '0% (Destilado Puro)',
     battery: 'No aplica',
@@ -150,6 +127,36 @@ export const PRODUCTS: Product[] = [
     isNew: false,
     reviews: [
       { id: 'b2', name: 'Nicolás J.', rating: 5, comment: 'Se siente súper premium la aleación. Recomiendo el color Oro de 24K, es muy vistosa.', date: '2026-05-30', verified: true }
+    ]
+  },
+  {
+    id: 'ease-8000-puffs',
+    name: 'EASE 8000 PUFFS',
+    brand: 'Importado',
+    category: 'vapers',
+    categoryLabel: 'Vapers',
+    price: 25000,
+    rating: 4.9,
+    reviewsCount: 377,
+    description: 'El vaporizador EASE 8000 Puffs ofrece gran cantidad de caladas con un diseño divertido e innovador estilo vaso de refresco con boquilla flexible, sabor ultra nítido y alto rendimiento.',
+    image: easeYellowImg, // default/fallback
+    features: ['Hasta 8000 Puffs reales', 'Diseño ergonómico estilo vaso con bombilla flexible', 'Resistencia mesh coil para máxima intensidad de sabor', 'Batería recargable tipo C de alto rendimiento'],
+    colors: [
+      { name: 'Amarillo', hex: '#EAB308', image: easeYellowImg },
+      { name: 'Morado', hex: '#A855F7', image: easePurpleImg },
+      { name: 'Verde', hex: '#22C55E', image: easeGreenImg }
+    ],
+    puffs: 8000,
+    nicotine: '5%',
+    battery: '650mAh (Recargable)',
+    capacity: '15ml',
+    stock: 30,
+    isPopular: true,
+    isNew: true,
+    reviews: [
+      { id: 'ryellow1', name: 'Sebastian G.', rating: 5, comment: 'Buenísimo sabor a pera con algodón de azúcar, el diseño del vasito es súper cómodo.', date: '2026-06-10', verified: true },
+      { id: 'rpurple1', name: 'Diana K.', rating: 5, comment: 'Me encanta la combinación de kiwi y limón, es súper fresco. El diseño de vasito morado está hermoso.', date: '2026-06-09', verified: true },
+      { id: 'rgreen1', name: 'Javier M.', rating: 5, comment: 'Espectacular sabor a manzana y frambuesa azul, súper recomendado. Muy buena potencia.', date: '2026-06-11', verified: true }
     ]
   }
 ];

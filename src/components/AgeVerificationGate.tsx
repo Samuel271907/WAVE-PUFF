@@ -72,9 +72,19 @@ export default function AgeVerificationGate({ onVerified }: AgeVerificationGateP
 
       <div className="relative w-full max-w-lg border border-white/10 bg-[#0c0814]/90 p-8 md:p-12 text-center backdrop-blur-xl shadow-2xl">
         
-        {/* LOGO AREA */}
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center border border-white/10 bg-[#15121f] p-1 shadow-lg">
-          <Logo showText={false} className="h-full w-full object-cover" />
+        {/* LOGO AREA - GORGEOUS 3D POPPING STYLE WITHOUT BOX CONTAINER */}
+        <div className="mx-auto mb-4 flex h-48 w-48 items-center justify-center transition-transform duration-500 hover:scale-115 hover:rotate-3 transform-gpu">
+          <Logo showText={false} className="h-full w-full object-contain filter drop-shadow-[0_0_30px_rgba(123,82,222,0.85)] hover:drop-shadow-[0_0_45px_rgba(167,139,250,1.0)] transition-all duration-300" />
+        </div>
+
+        <div className="flex flex-col items-center mb-6">
+          <span className="font-sans text-4xl sm:text-5xl font-black tracking-tight uppercase text-white leading-none flex items-center gap-1">
+            <span className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">Wave</span>
+            <span className="bg-gradient-to-r from-[#8B5CF6] via-[#A78BFA] to-[#C084FC] bg-clip-text text-transparent font-black drop-shadow-[0_0_25px_rgba(167,139,250,0.6)]">Puff</span>
+          </span>
+          <span className="font-mono text-[11px] tracking-[0.25em] text-[#A78BFA] uppercase mt-1.5 font-extrabold">
+            Premium Vapor
+          </span>
         </div>
 
         <span className="font-mono text-[10px] font-black uppercase tracking-[0.25em] text-[#A78BFA]">
