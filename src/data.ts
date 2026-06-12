@@ -1,9 +1,5 @@
 import { Product, FAQItem } from './types';
-
-const easeYellowImg = 'https://i.ibb.co/k2rKxGKz/vaper-amarillo.jpg';
-const easePurpleImg = 'https://i.ibb.co/1GBt054S/vaper-morado.jpg';
-const easeGreenImg = 'https://i.ibb.co/399h1gt9/vaper-verde.jpg';
-const capsulaNacionalImg = 'https://i.ibb.co/ymVnLDHK/capsula-nacional.jpg';
+import { easeYellowImg, easePurpleImg, easeGreenImg, capsulaNacionalImg } from './base64Images';
 
 export const FAQ_ITEMS: FAQItem[] = [
   {
