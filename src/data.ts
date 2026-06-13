@@ -1,5 +1,5 @@
 import { Product, FAQItem } from './types';
-import { easeYellowImg, easePurpleImg, easeGreenImg, capsulaNacionalImg } from './base64Images';
+import { easeYellowImg, easePurpleImg, easeGreenImg, capsulaNacionalImg, capsulaLemonadeImg, bateriaBrassknucklesImg, bateriaYellowMiniImg, comboWavePuffImg } from './base64Images';
 
 export const FAQ_ITEMS: FAQItem[] = [
   {
@@ -49,19 +49,19 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'capsula-importada-premium',
-    name: 'Cápsula Importada Cali',
+    name: 'CÁPSULA LEMONADE PREMIUM',
     brand: 'Importado',
     category: 'capsulas',
     categoryLabel: 'Cápsulas',
-    price: 65000,
+    price: 56000,
+    originalPrice: 66000,
     rating: 4.9,
     reviewsCount: 165,
-    description: 'Nuestras icónicas cápsulas premium de origen importado directamente de laboratorios verificados. Certificados de máxima pureza para una sensación y sabor ultra limpios.',
-    image: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-    features: ['Certificación de origen y máxima pureza', 'Sabores y destilación con especificaciones premium', 'Compatible con baterías de rosca 510 y USB', 'Flujo de aire optimizado para calada suave'],
+    description: 'Nuestras icónicas cápsulas premium de origen importado directamente de laboratorios verificados. Certificados de máxima pureza para una sensación y sabor ultra de Lemonade Premium.',
+    image: capsulaLemonadeImg,
+    features: ['Certificación de origen y máxima pureza', 'Sabor Lemonade Premium dulce y refrescante', 'Compatible con baterías de rosca 510 y USB', 'Flujo de aire optimizado para calada suave'],
     colors: [
-      { name: 'Gelato Sherbert', hex: '#EC4899' },
-      { name: 'Pineapple Express', hex: '#FBBF24' }
+      { name: 'Lemonade', hex: '#FACC15', image: capsulaLemonadeImg }
     ],
     nicotine: '0% (Pureza Certificada)',
     battery: 'No aplica',
@@ -70,60 +70,57 @@ export const PRODUCTS: Product[] = [
     isPopular: false,
     isNew: true,
     reviews: [
-      { id: 'ci1', name: 'Mariana P.', rating: 5, comment: 'La calidad del destilado importado se nota de inmediato. Gelato es una locura.', date: '2026-05-29', verified: true }
+      { id: 'ci1', name: 'Mariana P.', rating: 5, comment: 'La calidad del destilado importado se nota de inmediato. Lemonade de antes es riquísimo.', date: '2026-05-29', verified: true }
     ]
   },
   {
     id: 'bateria-vape-usb',
-    name: 'Batería Tipo USB Inteligente',
-    brand: 'Wave Puff',
+    name: 'BATERÍA BRASSKNUCKLES TIPO C',
+    brand: 'Brassknuckles',
     category: 'baterias',
     categoryLabel: 'Baterías',
-    price: 35000,
-    rating: 4.7,
-    reviewsCount: 78,
-    description: 'Batería compacta con conector USB integrado directo. Olvídate de los cables adicionales, ideal para cargarlo instantáneamente en cualquier puerto estándar y listo para usar en segundos.',
-    image: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-    features: ['Carga USB directa integrada sin cables', 'Conexión clásica de rosca 510 universal', '3 niveles de voltaje preestablecidos', 'Diseño ultraligero y de perfil plano'],
+    price: 40000,
+    rating: 4.8,
+    reviewsCount: 94,
+    description: 'Batería compacta importada premium con cargador Tipo C. Conexión clásica de rosca 510 universal de gran conductividad y elegancia absoluta. Ideal para tus sesiones de la mano de la mejor marca.',
+    image: bateriaBrassknucklesImg,
+    features: ['Cargador rápido Tipo C incluido', 'Conexión universal clásica de rosca 510', 'Regulación de voltaje inteligente preestablecida', 'Diseño elegante y acabado premium'],
     colors: [
-      { name: 'Titanio Cepillado', hex: '#9CA3AF' },
-      { name: 'Azul Eléctrico', hex: '#2563EB' }
-    ],
-    nicotine: 'No aplica',
-    battery: '350mAh',
-    capacity: 'Universal 510',
-    stock: 50,
-    isPopular: false,
-    isNew: false,
-    reviews: [
-      { id: 'b1', name: 'Mateo R.', rating: 4.8, comment: 'La comodidad de conectarlo directamente a la laptop sin cables es insuperable. Sólida duración.', date: '2026-05-26', verified: true }
-    ]
-  },
-  {
-    id: 'bateria-importada-variable',
-    name: 'Batería Importada Pro',
-    brand: 'Importado',
-    category: 'baterias',
-    categoryLabel: 'Baterías',
-    price: 55000,
-    rating: 4.9,
-    reviewsCount: 110,
-    description: 'Batería premium importada con regulación inteligente de voltaje digital. Excelente estabilidad de corriente para proteger las cápsulas y maximizar la entrega térmica.',
-    image: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-    features: ['Ajuste fino de voltaje por selector', 'Protección avanzada de sobrecarga para cápsulas', 'Diseño ergonómico texturizado en aleación de aluminio', 'Batería de alto rendimiento de larga duración'],
-    colors: [
-      { name: 'Púrpura Imperial', hex: '#7C3AED' },
-      { name: 'Oro de 24K', hex: '#cca43b' },
-      { name: 'Gris Grafito', hex: '#4B5563' }
+      { name: 'Negro', hex: '#000000', image: bateriaBrassknucklesImg }
     ],
     nicotine: 'No aplica',
     battery: '650mAh',
     capacity: 'Universal 510',
-    stock: 19,
+    stock: 25,
     isPopular: true,
-    isNew: false,
+    isNew: true,
     reviews: [
-      { id: 'b2', name: 'Nicolás J.', rating: 5, comment: 'Se siente súper premium la aleación. Recomiendo el color Oro de 24K, es muy vistosa.', date: '2026-05-30', verified: true }
+      { id: 'b1', name: 'Sebastian L.', rating: 5, comment: 'Hermoso color negro y el cargador Tipo C funciona excelente. Súper elegante.', date: '2026-06-11', verified: true }
+    ]
+  },
+  {
+    id: 'bateria-importada-variable',
+    name: 'BATERÍA TIPO C MINI',
+    brand: 'Importado',
+    category: 'baterias',
+    categoryLabel: 'Baterías',
+    price: 40000,
+    rating: 4.9,
+    reviewsCount: 110,
+    description: 'Batería premium súper compacta con conexión de rosca 510 universal y puerto de carga rápida Tipo C. Su tamaño mini es perfecto para llevarla a donde quieras con la máxima discreción y el mejor estilo.',
+    image: bateriaYellowMiniImg,
+    features: ['Diseño ultra-compacto de bolsillo', 'Puerto de carga rápida Tipo C', 'Conexión universal clásica de rosca 510', 'Excelente estabilidad de corriente para proteger tus cápsulas'],
+    colors: [
+      { name: 'Amarillo', hex: '#EAB308', image: bateriaYellowMiniImg }
+    ],
+    nicotine: 'No aplica',
+    battery: '400mAh',
+    capacity: 'Universal 510',
+    stock: 22,
+    isPopular: true,
+    isNew: true,
+    reviews: [
+      { id: 'b2', name: 'Nicolás J.', rating: 5, comment: 'Es increíblemente pequeña y súper práctica. Carga rapidísimo por puerto Tipo C y el color amarillo es fantástico.', date: '2026-06-12', verified: true }
     ]
   },
   {

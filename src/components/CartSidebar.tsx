@@ -85,12 +85,20 @@ export default function CartSidebar({
               >
                 {/* Micro preview */}
                 <div
-                  className="h-14 w-14 shrink-0 rounded-none border border-white/10 flex items-center justify-center"
-                  style={{ background: item.product.image }}
+                  className="h-14 w-14 shrink-0 rounded-none border border-white/10 flex items-center justify-center overflow-hidden bg-black/45"
                 >
-                  <div className="h-11 w-6 border border-white/20 bg-black/80 flex items-center justify-center">
-                    <span className="text-[5px] text-white/40 uppercase">WP</span>
-                  </div>
+                  {item.product.image && (item.product.image.includes('.') || item.product.image.includes('/') || item.product.image.startsWith('data:')) ? (
+                    <img 
+                      src={item.product.image} 
+                      className="h-full w-full object-cover" 
+                      alt={item.product.name} 
+                      referrerPolicy="no-referrer" 
+                    />
+                  ) : (
+                    <div className="h-11 w-6 border border-white/20 bg-black/80 flex items-center justify-center" style={{ backgroundColor: item.product.image || '#7B52DE' }}>
+                      <span className="text-[5px] text-white/40 uppercase">WP</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-1 flex-col justify-between">

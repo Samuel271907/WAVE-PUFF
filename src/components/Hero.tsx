@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight, Flame, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 import heroImg from '../assets/images/wave_puff_hero_1779664791366.png';
+import { comboWavePuffImg } from '../base64Images';
 
 interface HeroProps {
   onExploreClick: () => void;
@@ -28,7 +29,7 @@ export default function Hero({ onExploreClick, onWhatsAppConsult }: HeroProps) {
           {/* LEFT COLUMN: BRAND VALUE PROP */}
           <div className="text-center lg:col-span-7 lg:text-left">
             
-            <h1 className="mt-6 text-5xl font-black italic uppercase leading-[0.85] tracking-tighter text-white sm:text-6xl md:text-7xl lg:text-8xl">
+            <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black italic uppercase leading-[1.1] sm:leading-[0.95] md:leading-[0.85] tracking-tighter text-white">
               El Mejor Sabor
               <span className="block mt-2 text-transparent" style={{ WebkitTextStroke: '1px #7B52DE' }}>
                 La Mejor Vibra de CTG
@@ -57,7 +58,7 @@ export default function Hero({ onExploreClick, onWhatsAppConsult }: HeroProps) {
             </div>
 
             {/* FLOATING BULLETS OF TRUST */}
-            <div className="mt-14 grid grid-cols-3 gap-6 border-t border-white/10 pt-10 text-left">
+            <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3 border-t border-white/10 pt-10 text-left">
               <div>
                 <div className="flex items-center gap-2 text-white">
                   <Truck className="h-4 w-4 text-[#A78BFA] shrink-0" />
@@ -93,9 +94,9 @@ export default function Hero({ onExploreClick, onWhatsAppConsult }: HeroProps) {
                 <div className="overflow-hidden rounded-none border border-white/5 bg-[#050505] min-h-[250px]">
                   {!heroError ? (
                     <img
-                      src={heroImg}
+                      src={comboWavePuffImg}
                       alt="Colección Exótica Wave Puff"
-                      className="aspect-[4/3] w-full object-cover transition-transform duration-700 hover:scale-105"
+                      className="aspect-[4/3] w-full object-contain p-3 transition-transform duration-700 hover:scale-[1.03]"
                       referrerPolicy="no-referrer"
                       onError={() => setHeroError(true)}
                     />
@@ -139,14 +140,19 @@ export default function Hero({ onExploreClick, onWhatsAppConsult }: HeroProps) {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-mono text-[9px] text-[#A78BFA] uppercase tracking-[0.2em] font-black block">
-                        Sabor Destacado
+                        Promoción Destacada
                       </span>
                       <h3 className="text-xs font-black text-white uppercase tracking-wider mt-1">
-                        WAKA Triple Mango 10K
+                        LEMONADE PREMIUM DESTILADO
                       </h3>
                     </div>
-                    <div className="rounded-none bg-[#7B52DE]/15 px-3 py-1 text-xs font-black text-[#A78BFA] border border-[#7B52DE]/30">
-                      $65K
+                    <div className="text-right">
+                      <span className="line-through text-[10px] text-white/40 block leading-none font-bold">
+                        $90.000
+                      </span>
+                      <span className="text-xs font-black text-[#A78BFA] block mt-0.5">
+                        $85.000
+                      </span>
                     </div>
                   </div>
                 </div>

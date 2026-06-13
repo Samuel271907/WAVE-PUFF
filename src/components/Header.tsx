@@ -16,6 +16,7 @@ export default function Header({ cartCount, onOpenCart, onSelectProduct }: Heade
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [logoError, setLogoError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const mobileContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -37,7 +38,13 @@ export default function Header({ cartCount, onOpenCart, onSelectProduct }: Heade
   // Close search auto-results when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const clickedDesktopOutside = containerRef.current && !containerRef.current.contains(event.target as Node);
+      const clickedMobileOutside = mobileContainerRef.current && !mobileContainerRef.current.contains(event.target as Node);
+      
+      const hasDesktop = !!containerRef.current;
+      const hasMobile = !!mobileContainerRef.current;
+      
+      if ((!hasDesktop || clickedDesktopOutside) && (!hasMobile || clickedMobileOutside)) {
         setShowResults(false);
       }
     }
@@ -174,7 +181,7 @@ export default function Header({ cartCount, onOpenCart, onSelectProduct }: Heade
 
       {/* MOBILE SEARCH BAR */}
       <div className="border-t border-white/5 bg-[#050505] p-3 md:hidden">
-        <div ref={containerRef} className="relative w-full">
+        <div ref={mobileContainerRef} className="relative w-full">
           <div className="relative w-full">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <Search className="h-3.5 w-3.5 text-white/40" />
