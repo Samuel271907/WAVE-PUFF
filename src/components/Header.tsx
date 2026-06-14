@@ -1,16 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search, ShoppingBag, Flame, Sparkles, X } from 'lucide-react';
 import { Product } from '../types';
-import { PRODUCTS } from '../data';
 import Logo from './Logo';
 
 interface HeaderProps {
   cartCount: number;
   onOpenCart: () => void;
   onSelectProduct: (product: Product) => void;
+  products: Product[];
 }
 
-export default function Header({ cartCount, onOpenCart, onSelectProduct }: HeaderProps) {
+export default function Header({ cartCount, onOpenCart, onSelectProduct, products }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
@@ -25,7 +25,7 @@ export default function Header({ cartCount, onOpenCart, onSelectProduct }: Heade
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = PRODUCTS.filter(
+    const filtered = products.filter(
       (p) =>
         p.name.toLowerCase().includes(query) ||
         p.brand.toLowerCase().includes(query) ||
@@ -33,7 +33,7 @@ export default function Header({ cartCount, onOpenCart, onSelectProduct }: Heade
         p.description.toLowerCase().includes(query)
     );
     setSearchResults(filtered);
-  }, [searchQuery]);
+  }, [searchQuery, products]);
 
   // Close search auto-results when clicking outside
   useEffect(() => {

@@ -2,17 +2,25 @@ import { useState } from 'react';
 import { ArrowRight, Flame, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 import heroImg from '../assets/images/wave_puff_hero_1779664791366.png';
 import { comboWavePuffImg } from '../base64Images';
+import { Product } from '../types';
 
 interface HeroProps {
   onExploreClick: () => void;
   onWhatsAppConsult: (message: string) => void;
+  promoProduct?: Product | null;
+  onPromoClick?: (product: Product) => void;
 }
 
-export default function Hero({ onExploreClick, onWhatsAppConsult }: HeroProps) {
+export default function Hero({ onExploreClick, onWhatsAppConsult, promoProduct, onPromoClick }: HeroProps) {
   const [heroError, setHeroError] = useState(false);
   const handleConsult = () => {
     onWhatsAppConsult('¡Hola Wave Puff! Vi su página web y me gustaría recibir asesoría sobre qué vapeador me recomiendan según mis gustos.');
   };
+
+  const activeImage = promoProduct?.image || comboWavePuffImg;
+  const activeName = promoProduct?.name || 'LEMONADE PREMIUM DESTILADO';
+  const activePromoPrice = promoProduct ? promoProduct.price : 85000;
+  const activeOriginalPrice = promoProduct ? promoProduct.originalPrice : 90000;
 
   return (
     <section className="relative overflow-hidden bg-[#0a0814] pt-16 pb-20 md:pt-24 md:pb-32">
@@ -91,11 +99,14 @@ export default function Hero({ onExploreClick, onWhatsAppConsult }: HeroProps) {
               
               {/* Brutalist image frame wrapper & mockup */}
               <div className="relative select-none overflow-hidden rounded-none border border-white/10 bg-white/5 p-4 shadow-2xl">
-                <div className="overflow-hidden rounded-none border border-white/5 bg-[#050505] min-h-[250px]">
+                <div 
+                  onClick={() => promoProduct && onPromoClick && onPromoClick(promoProduct)}
+                  className={`overflow-hidden rounded-none border border-white/5 bg-[#050505] min-h-[250px] ${promoProduct ? 'cursor-pointer' : ''}`}
+                >
                   {!heroError ? (
                     <img
-                      src={comboWavePuffImg}
-                      alt="Colección Exótica Wave Puff"
+                      src={activeImage}
+                      alt={activeName}
                       className="aspect-[4/3] w-full object-contain p-3 transition-transform duration-700 hover:scale-[1.03]"
                       referrerPolicy="no-referrer"
                       onError={() => setHeroError(true)}
@@ -136,22 +147,27 @@ export default function Hero({ onExploreClick, onWhatsAppConsult }: HeroProps) {
                 </div>
 
                 {/* Sub banner item detail inside mockup */}
-                <div className="mt-4 rounded-none bg-white/5 p-4 border border-white/10">
+                <div 
+                  onClick={() => promoProduct && onPromoClick && onPromoClick(promoProduct)}
+                  className={`mt-4 rounded-none bg-white/5 p-4 border border-white/10 ${promoProduct ? 'cursor-pointer hover:bg-white/10 transition-colors' : ''}`}
+                >
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-mono text-[9px] text-[#A78BFA] uppercase tracking-[0.2em] font-black block">
                         Promoción Destacada
                       </span>
                       <h3 className="text-xs font-black text-white uppercase tracking-wider mt-1">
-                        LEMONADE PREMIUM DESTILADO
+                        {activeName}
                       </h3>
                     </div>
                     <div className="text-right">
-                      <span className="line-through text-[10px] text-white/40 block leading-none font-bold">
-                        $90.000
-                      </span>
+                      {activeOriginalPrice && (
+                        <span className="line-through text-[10px] text-white/40 block leading-none font-bold">
+                          ${activeOriginalPrice.toLocaleString('es-CO')}
+                        </span>
+                      )}
                       <span className="text-xs font-black text-[#A78BFA] block mt-0.5">
-                        $85.000
+                        ${activePromoPrice.toLocaleString('es-CO')}
                       </span>
                     </div>
                   </div>

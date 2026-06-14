@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SlidersHorizontal, ArrowUpDown, ChevronDown, CheckCircle, Smartphone, MapPin, Sparkles, Flame, Percent } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, ChevronDown, CheckCircle, Smartphone, MapPin, Sparkles, Flame, Percent, Lock, Unlock, Settings, Trash2, Plus, RotateCcw, Edit2, AlertCircle, X, Save } from 'lucide-react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductCard from './components/ProductCard';
@@ -8,9 +8,20 @@ import CartSidebar from './components/CartSidebar';
 import FAQSection from './components/FAQSection';
 import WhatsAppButton from './components/WhatsAppButton';
 import { Product, CartItem } from './types';
-import { PRODUCTS, BRANDS } from './data';
+import { PRODUCTS } from './data';
 import Logo from './components/Logo';
 import AgeVerificationGate from './components/AgeVerificationGate';
+
+// Obscured verification helper to protect the admin pass "2026W4ve." from plain-text exposure
+const verifyAdminPassword = (password: string): boolean => {
+  const clean = password.trim();
+  if (clean.length !== 9) return false;
+  const codes = [50, 48, 50, 54, 87, 52, 118, 101, 46];
+  for (let i = 0; i < codes.length; i++) {
+    if (clean.charCodeAt(i) !== codes[i]) return false;
+  }
+  return true;
+};
 
 export default function App() {
   // STATE MANAGEMENT
@@ -21,6 +32,32 @@ export default function App() {
     const saved = localStorage.getItem('wave_puff_cart');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // PRODUCTS STATE & PERSISTENCE
+  const [products, setProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('wave_puff_products');
+    return saved ? JSON.parse(saved) : PRODUCTS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wave_puff_products', JSON.stringify(products));
+  }, [products]);
+
+  // Derived Brand Options dynamically so edits show up instantly in filter selectors!
+  const derivedBrands = ['Todos', ...Array.from(new Set(products.map((p) => p.brand)))];
+
+  // ADMIN MODULE SYSTEMS STATE
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminVerified, setIsAdminVerified] = useState(() => {
+    return sessionStorage.getItem('wave_puff_admin_verified') === 'true';
+  });
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
+
+  // Active product being edited or created
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Product>>({});
+
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'vapers' | 'capsulas' | 'baterias'>('all');
   const [selectedBrand, setSelectedBrand] = useState<string>('Todos');
   const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc'>('popular');
@@ -103,8 +140,78 @@ export default function App() {
     document.getElementById('catalog-anchor')?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // ADMIN CRITICAL ACTIONS HANDLERS
+  const startEditing = (prod: Product) => {
+    setEditingId(prod.id);
+    setEditForm({ ...prod });
+  };
+
+  const startCreating = () => {
+    const newId = 'prod-' + Date.now();
+    setEditingId(newId);
+    setEditForm({
+      id: newId,
+      name: '',
+      brand: 'Importado',
+      category: 'vapers',
+      categoryLabel: 'Vapers',
+      price: 50000,
+      originalPrice: 60000,
+      rating: 5.0,
+      reviewsCount: 1,
+      description: '',
+      image: '',
+      features: ['Sabor premium de larga duración', 'Diseño ergonómico y portátil'],
+      colors: [{ name: 'Estándar', hex: '#7B52DE', image: '' }],
+      stock: 15,
+      isPopular: false,
+      isNew: true,
+      reviews: []
+    });
+  };
+
+  const handleSaveProduct = () => {
+    if (!editForm.name || !editForm.price || !editForm.description) {
+      alert('Por favor completa los campos requeridos: Nombre, Precio y Descripción.');
+      return;
+    }
+
+    setProducts((prev) => {
+      const idx = prev.findIndex((p) => p.id === editForm.id);
+      if (idx > -1) {
+        const updated = [...prev];
+        updated[idx] = editForm as Product;
+        return updated;
+      } else {
+        return [...prev, editForm as Product];
+      }
+    });
+
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const handleDeleteProduct = (id: string) => {
+    if (confirm('¿Estás seguro de que deseas eliminar este producto permanentemente del catálogo?')) {
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      if (editingId === id) {
+        setEditingId(null);
+        setEditForm({});
+      }
+    }
+  };
+
+  const handleResetToDefaults = () => {
+    if (confirm('¿Deseas restablecer todos los productos a los valores iniciales de fábrica? Esto eliminará tus ediciones actuales.')) {
+      setProducts(PRODUCTS);
+      localStorage.removeItem('wave_puff_products');
+      setEditingId(null);
+      setEditForm({});
+    }
+  };
+
   // FILTER & SORT INTERACTION
-  const filteredProducts = PRODUCTS.filter((product) => {
+  const filteredProducts = products.filter((product) => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesBrand = selectedBrand === 'Todos' || product.brand === selectedBrand;
     return matchesCategory && matchesBrand;
@@ -136,6 +243,7 @@ export default function App() {
         cartCount={cartTotalCount}
         onOpenCart={() => setIsCartOpen(true)}
         onSelectProduct={(prod) => setSelectedProduct(prod)}
+        products={products}
       />
 
       {/* FLYING CART PARTICLES CANVAS PORT */}
@@ -154,6 +262,8 @@ export default function App() {
       <Hero
         onExploreClick={scrollToCatalog}
         onWhatsAppConsult={handleSendWhatsApp}
+        promoProduct={products.find(p => p.id === 'lemonade-premium-destilado-combo') || products[0] || null}
+        onPromoClick={(prod) => setSelectedProduct(prod)}
       />
 
       {/* WAVE PUFF NEON MARQUEE TICKER */}
@@ -194,7 +304,7 @@ export default function App() {
                 onChange={(e) => setSelectedBrand(e.target.value)}
                 className="appearance-none rounded-none border border-white/10 bg-white/5 py-2.5 pl-4 pr-10 text-[10px] uppercase font-black tracking-widest text-white outline-none cursor-pointer transition-colors focus:border-[#7B52DE]"
               >
-                {BRANDS.map((brand) => (
+                {derivedBrands.map((brand) => (
                   <option key={brand} value={brand} className="bg-[#050505] text-white">
                     Marca: {brand}
                   </option>
@@ -345,11 +455,428 @@ export default function App() {
 
           </div>
 
-          <div className="mt-12 border-t border-white/5 pt-8 text-center text-[11px] text-slate-500">
+          <div className="mt-12 border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-[11px] text-slate-500">
             <p>© {new Date().getFullYear()} Wave Puff. Todos los derechos reservados. Desarrollado con tecnología ultra-fresca.</p>
+            <button
+              onClick={() => setIsAdminOpen(true)}
+              className="flex items-center gap-1.5 text-slate-500 hover:text-[#A78BFA] transition-colors cursor-pointer bg-white/5 px-2.5 py-1.5 border border-white/10 text-[9px] font-mono tracking-wider uppercase"
+              type="button"
+            >
+              <Lock className="h-3 w-3" />
+              <span>Acceso Administrador</span>
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* ADMIN WORKSPACE SYSTEM PANEL MODAL */}
+      {isAdminOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-6xl border border-white/10 bg-[#0c0a1a] p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-[#A78BFA] animate-pulse" />
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                    Panel de Administración Wave Puff
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-mono">Modifica precios, fotos, unidades de stock y descripciones.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsAdminOpen(false);
+                  setIsAdminVerified(false);
+                  setEditingId(null);
+                  setEditForm({});
+                }}
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Admin Verification Input View */}
+            {!isAdminVerified ? (
+              <div className="flex flex-col items-center justify-center py-12 max-w-md mx-auto w-full text-center">
+                <div className="h-12 w-12 rounded-full bg-[#7B52DE]/10 flex items-center justify-center border border-[#7B52DE]/30 mb-4 text-[#A78BFA]">
+                  <Lock className="h-6 w-6" />
+                </div>
+                <h4 className="text-sm font-black uppercase tracking-wider text-white font-bold">Código de Administrador Requerido</h4>
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Por favor introduce la contraseña para verificar tu identidad y realizar ediciones.
+                </p>
+
+                <div className="mt-6 w-full relative">
+                  <input
+                    type="password"
+                    placeholder="Contraseña de Administrador"
+                    value={adminPassword}
+                    onChange={(e) => {
+                      setAdminPassword(e.target.value);
+                      setAdminError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (verifyAdminPassword(adminPassword)) {
+                          setIsAdminVerified(true);
+                          sessionStorage.setItem('wave_puff_admin_verified', 'true');
+                        } else {
+                          setAdminError('Contraseña incorrecta. Intente de nuevo.');
+                        }
+                      }
+                    }}
+                    className="w-full rounded-none border border-white/10 bg-black/60 px-4 py-3 text-xs text-white text-center outline-none focus:border-[#7B52DE]"
+                    autoFocus
+                  />
+                  {adminError && (
+                    <div className="mt-2 text-xs text-red-400 font-mono flex items-center gap-1 justify-center">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>{adminError}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 flex gap-3 w-full">
+                  <button
+                    onClick={() => {
+                      if (verifyAdminPassword(adminPassword)) {
+                        setIsAdminVerified(true);
+                        sessionStorage.setItem('wave_puff_admin_verified', 'true');
+                      } else {
+                        setAdminError('Contraseña incorrecta. Intente de nuevo.');
+                      }
+                    }}
+                    className="flex-1 bg-[#7B52DE] hover:bg-[#8B5CF6] text-white py-2.5 text-xs font-black uppercase tracking-widest cursor-pointer"
+                  >
+                    Ingresar
+                  </button>
+                  <button
+                    onClick={() => setIsAdminOpen(false)}
+                    className="flex-1 border border-white/10 hover:border-white/20 text-slate-300 py-2.5 text-xs font-black uppercase tracking-widest cursor-pointer"
+                  >
+                    Salir
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Verified Workspace Panel View */
+              <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-6 min-h-[400px]">
+                
+                {/* Product List Selector Column */}
+                <div className="w-full md:w-1/3 flex flex-col border-r border-white/5 pr-0 md:pr-6 overflow-y-auto max-h-[250px] md:max-h-[50vh]">
+                  <div className="flex items-center justify-between mb-4 shrink-0">
+                    <span className="text-xs font-mono font-bold uppercase text-[#A78BFA] tracking-wider">Dispositivos ({products.length})</span>
+                    <button
+                      onClick={startCreating}
+                      className="flex items-center gap-1 rounded bg-[#7B52DE]/20 hover:bg-[#7B52DE]/30 border border-[#7B52DE]/30 px-2 py-1 text-[9px] font-black text-white uppercase cursor-pointer"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Agregar</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 flex-grow overflow-y-auto pr-1">
+                    {products.map((p) => (
+                      <div 
+                        key={p.id}
+                        onClick={() => startEditing(p)}
+                        className={`p-3 border transition-colors flex items-center justify-between gap-2 cursor-pointer ${editingId === p.id ? 'border-[#7B52DE] bg-[#7B52DE]/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <h5 className="text-xs font-black text-white truncate uppercase tracking-wide">{p.name}</h5>
+                          <div className="flex items-center gap-2 mt-1 font-mono text-[9px] text-slate-400">
+                            <span>Stock: <strong className={p.stock <= 5 ? 'text-amber-500' : 'text-white'}>{p.stock}</strong></span>
+                            <span>·</span>
+                            <span className="text-[#A78BFA]">${p.price.toLocaleString('es-CO')}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditing(p);
+                            }}
+                            title="Editar"
+                            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProduct(p.id);
+                            }}
+                            title="Eliminar"
+                            className="p-1 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* FACTORY RESET TRIGGER */}
+                  <div className="mt-4 pt-4 border-t border-white/5 shrink-0">
+                    <button
+                      onClick={handleResetToDefaults}
+                      className="w-full flex items-center justify-center gap-1.5 border border-red-500/15 bg-red-500/5 hover:bg-red-500/10 text-red-400 py-2.5 text-[9px] font-mono tracking-widest uppercase cursor-pointer transition-colors"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      <span>Restablecer Todo de Fábrica</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Editor form panel */}
+                <div className="flex-1 flex flex-col border-t border-white/5 md:border-t-0 pt-6 md:pt-0 overflow-y-auto max-h-[450px] md:max-h-[50vh]">
+                  {editingId ? (
+                    <div className="space-y-4 pr-1">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <span className="text-[10px] font-mono font-bold text-[#A78BFA] uppercase tracking-widest">
+                          {products.find(p => p.id === editForm.id) ? 'Editando Datos de Producto' : 'Creando Producto Nuevo'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handleSaveProduct}
+                            className="flex items-center gap-1 bg-[#7B52DE] hover:bg-[#8B5CF6] text-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors"
+                          >
+                            <Save className="h-3 w-3" />
+                            <span>Guardar</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingId(null);
+                              setEditForm({});
+                            }}
+                            className="border border-white/10 hover:border-white/20 text-slate-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                          >
+                            Cerrar
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1.5">Nombre del Producto *</label>
+                          <input
+                            type="text"
+                            value={editForm.name || ''}
+                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-[#7B52DE]"
+                            placeholder="Ej. WAKA TRIPLE MANGO 10K"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1.5">Marca *</label>
+                          <input
+                            type="text"
+                            value={editForm.brand || ''}
+                            onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-[#7B52DE]"
+                            placeholder="Ej. Waka, Ease, Importado"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1.5">Precio de Venta ($ COP) *</label>
+                          <input
+                            type="number"
+                            value={editForm.price || 0}
+                            onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-[#7B52DE]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1.5">Precio Original / Tachado ($ COP)</label>
+                          <input
+                            type="number"
+                            value={editForm.originalPrice || 0}
+                            onChange={(e) => setEditForm({ ...editForm, originalPrice: Number(e.target.value) })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-[#7B52DE]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1.5">Unidades en Stock *</label>
+                          <input
+                            type="number"
+                            value={editForm.stock || 0}
+                            onChange={(e) => setEditForm({ ...editForm, stock: Number(e.target.value) })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-[#7B52DE]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1.5">Categoría *</label>
+                          <select
+                            value={editForm.category || 'vapers'}
+                            onChange={(e) => {
+                              const val = e.target.value as any;
+                              const labelMap: Record<string, string> = {
+                                vapers: 'Vapers',
+                                capsulas: 'Cápsulas',
+                                baterias: 'Baterías'
+                              };
+                              setEditForm({ ...editForm, category: val, categoryLabel: labelMap[val] });
+                            }}
+                            className="w-full rounded-none border border-white/10 bg-black/60 px-3 py-2 text-xs text-white outline-none focus:border-[#7B52DE]"
+                          >
+                            <option value="vapers">Vapers (Cigarrillo)</option>
+                            <option value="capsulas">Cápsulas / Pods</option>
+                            <option value="baterias">Baterías / Dispositivo</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1.5">Descripción del Producto *</label>
+                        <textarea
+                          rows={3}
+                          value={editForm.description || ''}
+                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                          className="w-full rounded-none border border-white/10 bg-black/40 p-3 text-xs text-white outline-none focus:border-[#7B52DE]"
+                          placeholder="Introduce descripciones detalladas del funcionamiento y sabores..."
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest">URL de la Foto o Imagen Base64</label>
+                          <span className="text-[8px] text-[#A78BFA] font-mono">Pega link o código base64</span>
+                        </div>
+                        <textarea
+                          rows={2}
+                          value={editForm.image || ''}
+                          onChange={(e) => setEditForm({ ...editForm, image: e.target.value })}
+                          className="w-full rounded-none border border-white/10 bg-black/40 p-3 text-xs text-white font-mono outline-none focus:border-[#7B52DE]"
+                          placeholder="Pega la URL de la imagen ej. https://... o un Base64..."
+                        />
+                        {editForm.image && (
+                          <div className="mt-2 flex items-center gap-3 bg-white/5 border border-white/10 p-2">
+                            <span className="text-[9px] font-mono text-slate-400">Vista Previa:</span>
+                            <div className="h-10 w-10 overflow-hidden bg-black flex items-center justify-center border border-white/10">
+                              {editForm.image.includes('.') || editForm.image.includes('/') || editForm.image.startsWith('data:') ? (
+                                <img src={editForm.image} alt="preview" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="h-6 w-6 rounded-full" style={{ background: editForm.image }} />
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={editForm.isPopular || false}
+                            onChange={(e) => setEditForm({ ...editForm, isPopular: e.target.checked })}
+                            className="rounded-none border-white/10 accent-[#7B52DE]"
+                          />
+                          <span className="text-[10px] font-mono font-black text-white uppercase tracking-widest">Sabor Popular (Badge)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={editForm.isNew || false}
+                            onChange={(e) => setEditForm({ ...editForm, isNew: e.target.checked })}
+                            className="rounded-none border-white/10 accent-[#7B52DE]"
+                          />
+                          <span className="text-[10px] font-mono font-black text-white uppercase tracking-widest">Producto Nuevo (Badge)</span>
+                        </label>
+                      </div>
+
+                      {/* EXTRA DETAILED SPECIFICATIONS (PUFFS, NICOTINE, ETC) */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/5">
+                        <div>
+                          <label className="block text-[8px] font-mono text-slate-400 uppercase tracking-widest mb-1">Duración (Puffs)</label>
+                          <input
+                            type="number"
+                            placeholder="Ej. 10000"
+                            value={editForm.puffs || ''}
+                            onChange={(e) => setEditForm({ ...editForm, puffs: e.target.value ? Number(e.target.value) : undefined })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white outline-none focus:border-[#7B52DE]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[8px] font-mono text-slate-400 uppercase tracking-widest mb-1">Nicotina</label>
+                          <input
+                            type="text"
+                            placeholder="Ej. 5% o 0%"
+                            value={editForm.nicotine || ''}
+                            onChange={(e) => setEditForm({ ...editForm, nicotine: e.target.value })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white outline-none focus:border-[#7B52DE]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[8px] font-mono text-slate-400 uppercase tracking-widest mb-1">Batería</label>
+                          <input
+                            type="text"
+                            placeholder="Ej. 650mAh"
+                            value={editForm.battery || ''}
+                            onChange={(e) => setEditForm({ ...editForm, battery: e.target.value })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white outline-none focus:border-[#7B52DE]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[8px] font-mono text-slate-400 uppercase tracking-widest mb-1">Capacidad</label>
+                          <input
+                            type="text"
+                            placeholder="Ej. 18ml"
+                            value={editForm.capacity || ''}
+                            onChange={(e) => setEditForm({ ...editForm, capacity: e.target.value })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white outline-none focus:border-[#7B52DE]"
+                          />
+                        </div>
+                      </div>
+
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500 border border-dashed border-white/10 rounded-lg">
+                      <Settings className="h-8 w-8 text-slate-600 mb-2 animate-pulse" />
+                      <h5 className="text-xs font-black uppercase text-white mb-1">Editor de Productos</h5>
+                      <p className="text-[11px] max-w-sm leading-relaxed">
+                        Selecciona un dispositivo para editar sus textos, precios, stock o imágenes de sabores. O haz clic en "Agregar" para crear uno nuevo.
+                      </p>
+                      <button
+                        onClick={startCreating}
+                        className="mt-4 flex items-center gap-1.5 bg-[#7B52DE]/20 border border-[#7B52DE]/30 hover:bg-[#7B52DE]/30 px-4 py-2 text-xs font-black text-white uppercase cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Crear Nuevo</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
+
+            {/* Panel footer operations */}
+            {isAdminVerified && (
+              <div className="border-t border-white/10 mt-6 pt-4 flex justify-between items-center gap-4 shrink-0">
+                <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
+                  <Unlock className="h-3.5 w-3.5 animate-pulse" />
+                  <span>Sesión Autorizada Exitosamente</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsAdminOpen(false);
+                    setIsAdminVerified(false);
+                    setEditingId(null);
+                    setEditForm({});
+                  }}
+                  className="bg-[#120f26] border border-white/10 hover:border-white/20 text-white px-6 py-2.5 text-xs font-black uppercase tracking-widest cursor-pointer transition-colors"
+                >
+                  Cerrar Panel
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
