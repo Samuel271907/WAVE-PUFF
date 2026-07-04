@@ -160,7 +160,19 @@ export default function App() {
               nextStock = 15; // default restocked amount
             }
           }
-          return { ...p, isAvailable: nextStatus, stock: nextStock };
+          
+          const updatedProduct = { ...p, isAvailable: nextStatus, stock: nextStock };
+          
+          // Sync with the active editor form if we are currently editing this product
+          if (editingId === id) {
+            setEditForm((prevForm) => ({
+              ...prevForm,
+              isAvailable: nextStatus,
+              stock: nextStock
+            }));
+          }
+          
+          return updatedProduct;
         }
         return p;
       })
@@ -255,7 +267,7 @@ export default function App() {
       battery: editForm.battery ? String(editForm.battery).trim() : undefined,
       capacity: editForm.capacity ? String(editForm.capacity).trim() : undefined,
       stock: Number(editForm.stock),
-      isAvailable: editForm.isAvailable !== false,
+      isAvailable: editForm.isAvailable !== false && Number(editForm.stock) > 0,
       isPopular: !!editForm.isPopular,
       isNew: !!editForm.isNew,
       reviews: editForm.reviews || []
@@ -488,14 +500,17 @@ export default function App() {
       />
 
       {/* PRODUCT EXPAND AREA MODAL */}
-      {selectedProduct && (
-        <ProductDetailsModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-          onAddToCart={handleAddToCart}
-          onSendWhatsApp={handleSendWhatsApp}
-        />
-      )}
+      {selectedProduct && (() => {
+        const liveProduct = products.find(p => p.id === selectedProduct.id) || selectedProduct;
+        return (
+          <ProductDetailsModal
+            product={liveProduct}
+            onClose={() => setSelectedProduct(null)}
+            onAddToCart={handleAddToCart}
+            onSendWhatsApp={handleSendWhatsApp}
+          />
+        );
+      })()}
 
       {/* FOOTER CONTAINER */}
       <footer className="mt-auto border-t border-white/10 bg-[#07050f] py-12 px-4 sm:px-6 lg:px-8">
@@ -814,7 +829,14 @@ export default function App() {
                           <input
                             type="number"
                             value={editForm.stock || 0}
-                            onChange={(e) => setEditForm({ ...editForm, stock: Number(e.target.value) })}
+                            onChange={(e) => {
+                              const newStock = Number(e.target.value);
+                              setEditForm({
+                                ...editForm,
+                                stock: newStock,
+                                isAvailable: newStock > 0 ? (editForm.isAvailable !== false) : false
+                              });
+                            }}
                             className="w-full rounded-none border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-[#7B52DE]"
                           />
                         </div>
@@ -882,8 +904,15 @@ export default function App() {
                         <label className="flex items-center gap-2 cursor-pointer select-none bg-white/[0.02] border border-white/10 px-3 py-2">
                           <input
                             type="checkbox"
-                            checked={editForm.isAvailable !== false}
-                            onChange={(e) => setEditForm({ ...editForm, isAvailable: e.target.checked })}
+                            checked={editForm.isAvailable !== false && (editForm.stock || 0) > 0}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setEditForm({
+                                ...editForm,
+                                isAvailable: checked,
+                                stock: checked ? (editForm.stock && editForm.stock > 0 ? editForm.stock : 15) : 0
+                              });
+                            }}
                             className="rounded-none border-white/10 accent-[#7B52DE]"
                           />
                           <span className="text-[10px] font-mono font-black text-white uppercase tracking-widest">Disponible para Venta</span>
