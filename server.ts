@@ -44,6 +44,7 @@ if (!fs.existsSync(STORE_PATH)) {
 
 // API Routes
 app.get('/api/products', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const products = getProducts() || PRODUCTS;
   res.json(products);
 });

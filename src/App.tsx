@@ -38,10 +38,7 @@ export default function App() {
   const [editForm, setEditForm] = useState<Partial<Product>>({});
 
   // PRODUCTS STATE & PERSISTENCE
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('wave_puff_products');
-    return saved ? JSON.parse(saved) : PRODUCTS;
-  });
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
 
   const syncProductsToServer = async (updatedProducts: Product[]) => {
     try {
@@ -57,14 +54,16 @@ export default function App() {
     }
   };
 
+  // Clean up any stale legacy products from local storage to prevent any interference
   useEffect(() => {
-    localStorage.setItem('wave_puff_products', JSON.stringify(products));
-  }, [products]);
+    localStorage.removeItem('wave_puff_products');
+  }, []);
 
   useEffect(() => {
     const fetchFromStore = async () => {
       try {
-        const res = await fetch('/api/products');
+        // Appending timestamp as a cache-busting parameter to bypass browser and proxy caching
+        const res = await fetch(`/api/products?t=${Date.now()}`);
         if (res.ok) {
           const data = await res.json();
           // Avoid setting if they are identical, or if we are currently editing/creating a product
