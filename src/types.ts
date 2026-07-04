@@ -26,6 +26,7 @@ export interface Product {
   battery?: string;
   capacity?: string;
   stock: number;
+  isAvailable?: boolean;
   isPopular: boolean;
   isNew: boolean;
   reviews: Review[];

@@ -40,11 +40,15 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
             Nuevo
           </span>
         )}
-        {product.stock <= 8 && (
+        {(product.stock === 0 || product.isAvailable === false) ? (
+          <span className="rounded-none bg-red-600/20 border border-red-500/50 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] text-red-400">
+            Agotado
+          </span>
+        ) : product.stock <= 8 ? (
           <span className="rounded-none bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] text-amber-500">
             Últimas {product.stock}UDS
           </span>
-        )}
+        ) : null}
       </div>
 
       {/* PRODUCT IMAGE GRADIENT OR REAL IMAGE VISUAL */}
@@ -185,9 +189,9 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
 
           <button
             onClick={handleAdd}
-            disabled={product.stock === 0}
+            disabled={product.stock === 0 || product.isAvailable === false}
             className={`flex h-10 items-center justify-center rounded-none px-4.5 text-[10px] font-black uppercase tracking-[0.15em] transition-all cursor-pointer ${
-              product.stock === 0
+              product.stock === 0 || product.isAvailable === false
                 ? 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
                 : isAdded
                 ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20 border-none'
@@ -195,7 +199,9 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
             }`}
             type="button"
           >
-            {isAdded ? (
+            {product.stock === 0 || product.isAvailable === false ? (
+              <span>Agotado</span>
+            ) : isAdded ? (
               <span className="flex items-center gap-1">
                 <Check className="h-3.5 w-3.5" />
                 <span>Agregado</span>

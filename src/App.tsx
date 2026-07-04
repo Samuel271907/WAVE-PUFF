@@ -146,6 +146,27 @@ export default function App() {
     setEditForm({ ...prod });
   };
 
+  const toggleProductAvailability = (id: string) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const currentStatus = p.isAvailable !== false && p.stock > 0;
+          const nextStatus = !currentStatus;
+          let nextStock = p.stock;
+          if (!nextStatus) {
+            nextStock = 0;
+          } else {
+            if (p.stock === 0) {
+              nextStock = 15; // default restocked amount
+            }
+          }
+          return { ...p, isAvailable: nextStatus, stock: nextStock };
+        }
+        return p;
+      })
+    );
+  };
+
   const startCreating = () => {
     const newId = 'prod-' + Date.now();
     setEditingId(newId);
@@ -164,6 +185,7 @@ export default function App() {
       features: ['Sabor premium de larga duración', 'Diseño ergonómico y portátil'],
       colors: [{ name: 'Estándar', hex: '#7B52DE', image: '' }],
       stock: 15,
+      isAvailable: true,
       isPopular: false,
       isNew: true,
       reviews: []
@@ -171,19 +193,82 @@ export default function App() {
   };
 
   const handleSaveProduct = () => {
-    if (!editForm.name || !editForm.price || !editForm.description) {
-      alert('Por favor completa los campos requeridos: Nombre, Precio y Descripción.');
+    const errors: string[] = [];
+
+    if (!editForm.name || editForm.name.trim().length < 3) {
+      errors.push('El nombre del producto es requerido y debe tener al menos 3 caracteres.');
+    }
+    if (!editForm.brand || editForm.brand.trim() === '') {
+      errors.push('La marca es requerida.');
+    }
+    if (editForm.price === undefined || editForm.price === null || isNaN(editForm.price) || editForm.price <= 0) {
+      errors.push('El precio de venta debe ser un número positivo mayor que 0.');
+    }
+    if (editForm.originalPrice !== undefined && editForm.originalPrice !== null && editForm.originalPrice !== 0 && editForm.originalPrice < (editForm.price || 0)) {
+      errors.push('El precio original (tachado) debe ser mayor o igual al precio de venta.');
+    }
+    if (editForm.stock === undefined || editForm.stock === null || isNaN(editForm.stock) || editForm.stock < 0) {
+      errors.push('Las unidades en stock no pueden ser negativas.');
+    }
+    if (!editForm.description || editForm.description.trim().length < 10) {
+      errors.push('La descripción es requerida y debe contener al menos 10 caracteres.');
+    }
+    if (!editForm.category) {
+      errors.push('Debes seleccionar una categoría.');
+    }
+
+    // Validate colors/flavors list
+    if (!editForm.colors || editForm.colors.length === 0) {
+      errors.push('Debes definir al menos una edición o sabor (con su color hex).');
+    } else {
+      editForm.colors.forEach((c, idx) => {
+        if (!c.name || c.name.trim() === '') {
+          errors.push(`El sabor/edición #${idx + 1} requiere un nombre.`);
+        }
+        if (!c.hex || !c.hex.startsWith('#')) {
+          errors.push(`El color hexadecimal del sabor #${idx + 1} debe iniciar con "#" (ej. #FF0000).`);
+        }
+      });
+    }
+
+    if (errors.length > 0) {
+      alert("Errores de Validación:\n\n" + errors.map((err, idx) => `${idx + 1}. ${err}`).join('\n'));
       return;
     }
 
+    const finalProduct: Product = {
+      id: editForm.id || 'prod-' + Date.now(),
+      name: (editForm.name || '').trim(),
+      brand: (editForm.brand || 'Importado').trim(),
+      category: editForm.category || 'vapers',
+      categoryLabel: editForm.categoryLabel || 'Vapers',
+      price: Number(editForm.price),
+      originalPrice: editForm.originalPrice ? Number(editForm.originalPrice) : undefined,
+      rating: editForm.rating || 5.0,
+      reviewsCount: editForm.reviewsCount || 1,
+      description: (editForm.description || '').trim(),
+      image: (editForm.image || '').trim(),
+      features: editForm.features || ['Sabor premium de larga duración', 'Diseño ergonómico y portátil'],
+      colors: editForm.colors || [{ name: 'Estándar', hex: '#7B52DE', image: '' }],
+      puffs: editForm.puffs ? Number(editForm.puffs) : undefined,
+      nicotine: editForm.nicotine ? String(editForm.nicotine).trim() : undefined,
+      battery: editForm.battery ? String(editForm.battery).trim() : undefined,
+      capacity: editForm.capacity ? String(editForm.capacity).trim() : undefined,
+      stock: Number(editForm.stock),
+      isAvailable: editForm.isAvailable !== false,
+      isPopular: !!editForm.isPopular,
+      isNew: !!editForm.isNew,
+      reviews: editForm.reviews || []
+    };
+
     setProducts((prev) => {
-      const idx = prev.findIndex((p) => p.id === editForm.id);
+      const idx = prev.findIndex((p) => p.id === finalProduct.id);
       if (idx > -1) {
         const updated = [...prev];
-        updated[idx] = editForm as Product;
+        updated[idx] = finalProduct;
         return updated;
       } else {
-        return [...prev, editForm as Product];
+        return [...prev, finalProduct];
       }
     });
 
@@ -566,9 +651,12 @@ export default function App() {
               <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-6 min-h-[400px]">
                 
                 {/* Product List Selector Column */}
-                <div className="w-full md:w-1/3 flex flex-col border-r border-white/5 pr-0 md:pr-6 overflow-y-auto max-h-[250px] md:max-h-[50vh]">
+                <div className="w-full md:w-5/12 flex flex-col border-r border-white/5 pr-0 md:pr-6 overflow-y-auto max-h-[300px] md:max-h-[50vh]">
                   <div className="flex items-center justify-between mb-4 shrink-0">
-                    <span className="text-xs font-mono font-bold uppercase text-[#A78BFA] tracking-wider">Dispositivos ({products.length})</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-mono font-bold uppercase text-[#A78BFA] tracking-wider">Dispositivos ({products.length})</span>
+                      <span className="text-[8px] text-slate-500 font-mono">Haz clic en el estado para alternarlo rápido</span>
+                    </div>
                     <button
                       onClick={startCreating}
                       className="flex items-center gap-1 rounded bg-[#7B52DE]/20 hover:bg-[#7B52DE]/30 border border-[#7B52DE]/30 px-2 py-1 text-[9px] font-black text-white uppercase cursor-pointer"
@@ -579,44 +667,67 @@ export default function App() {
                   </div>
 
                   <div className="space-y-2 flex-grow overflow-y-auto pr-1">
-                    {products.map((p) => (
-                      <div 
-                        key={p.id}
-                        onClick={() => startEditing(p)}
-                        className={`p-3 border transition-colors flex items-center justify-between gap-2 cursor-pointer ${editingId === p.id ? 'border-[#7B52DE] bg-[#7B52DE]/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <h5 className="text-xs font-black text-white truncate uppercase tracking-wide">{p.name}</h5>
-                          <div className="flex items-center gap-2 mt-1 font-mono text-[9px] text-slate-400">
-                            <span>Stock: <strong className={p.stock <= 5 ? 'text-amber-500' : 'text-white'}>{p.stock}</strong></span>
-                            <span>·</span>
-                            <span className="text-[#A78BFA]">${p.price.toLocaleString('es-CO')}</span>
+                    {products.map((p) => {
+                      const isAvail = p.isAvailable !== false && p.stock > 0;
+                      return (
+                        <div 
+                          key={p.id}
+                          onClick={() => startEditing(p)}
+                          className={`p-3 border transition-colors flex items-center justify-between gap-3 cursor-pointer ${editingId === p.id ? 'border-[#7B52DE] bg-[#7B52DE]/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <h5 className="text-xs font-black text-white truncate uppercase tracking-wide">{p.name}</h5>
+                            <div className="flex items-center flex-wrap gap-2 mt-1.5 font-mono text-[9px] text-slate-400">
+                              <span>Stock: <strong className={p.stock <= 5 ? 'text-amber-500' : 'text-white'}>{p.stock}</strong></span>
+                              <span>·</span>
+                              <span className="text-[#A78BFA]">${p.price.toLocaleString('es-CO')}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Quick Actions & Status */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {/* Inventory status toggler badge */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleProductAvailability(p.id);
+                              }}
+                              title={isAvail ? "Marcar como Agotado" : "Marcar como Disponible (Restablece 15UDS)"}
+                              className={`px-2 py-0.5 text-[8px] font-bold uppercase border cursor-pointer select-none transition-all active:scale-95 ${
+                                isAvail 
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
+                                  : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                              }`}
+                            >
+                              {isAvail ? 'Disponible' : 'Agotado'}
+                            </button>
+
+                            <div className="flex items-center gap-0.5">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditing(p);
+                                }}
+                                title="Editar"
+                                className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteProduct(p.id);
+                                }}
+                                title="Eliminar"
+                                className="p-1 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditing(p);
-                            }}
-                            title="Editar"
-                            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProduct(p.id);
-                            }}
-                            title="Eliminar"
-                            className="p-1 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* FACTORY RESET TRIGGER */}
@@ -632,7 +743,7 @@ export default function App() {
                 </div>
 
                 {/* Editor form panel */}
-                <div className="flex-1 flex flex-col border-t border-white/5 md:border-t-0 pt-6 md:pt-0 overflow-y-auto max-h-[450px] md:max-h-[50vh]">
+                <div className="flex-1 flex flex-col border-t border-white/5 md:border-t-0 pt-6 md:pt-0 overflow-y-auto max-h-[500px] md:max-h-[50vh]">
                   {editingId ? (
                     <div className="space-y-4 pr-1">
                       <div className="flex items-center justify-between border-b border-white/5 pb-2">
@@ -766,8 +877,18 @@ export default function App() {
                         )}
                       </div>
 
-                      <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                      {/* BADGES & STOCK AVAILABILITY TOGGLES */}
+                      <div className="flex flex-wrap gap-4 pt-2 pb-1">
+                        <label className="flex items-center gap-2 cursor-pointer select-none bg-white/[0.02] border border-white/10 px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={editForm.isAvailable !== false}
+                            onChange={(e) => setEditForm({ ...editForm, isAvailable: e.target.checked })}
+                            className="rounded-none border-white/10 accent-[#7B52DE]"
+                          />
+                          <span className="text-[10px] font-mono font-black text-white uppercase tracking-widest">Disponible para Venta</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none bg-white/[0.02] border border-white/10 px-3 py-2">
                           <input
                             type="checkbox"
                             checked={editForm.isPopular || false}
@@ -776,7 +897,7 @@ export default function App() {
                           />
                           <span className="text-[10px] font-mono font-black text-white uppercase tracking-widest">Sabor Popular (Badge)</span>
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <label className="flex items-center gap-2 cursor-pointer select-none bg-white/[0.02] border border-white/10 px-3 py-2">
                           <input
                             type="checkbox"
                             checked={editForm.isNew || false}
@@ -785,6 +906,142 @@ export default function App() {
                           />
                           <span className="text-[10px] font-mono font-black text-white uppercase tracking-widest">Producto Nuevo (Badge)</span>
                         </label>
+                      </div>
+
+                      {/* FLAVORS / EDITIONS MANAGER */}
+                      <div className="border-t border-white/5 pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="block text-[10px] font-mono font-black text-slate-300 uppercase tracking-widest">Sabores / Ediciones Disponibles *</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentColors = editForm.colors || [];
+                              setEditForm({
+                                ...editForm,
+                                colors: [...currentColors, { name: 'Nuevo Sabor', hex: '#7B52DE', image: '' }]
+                              });
+                            }}
+                            className="flex items-center gap-1 rounded bg-[#7B52DE]/20 hover:bg-[#7B52DE]/30 border border-[#7B52DE]/30 px-2 py-1 text-[9px] font-black text-white uppercase cursor-pointer"
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>Agregar Sabor</span>
+                          </button>
+                        </div>
+                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                          {(editForm.colors || []).map((color, idx) => (
+                            <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-white/[0.02] border border-white/5 p-2 items-center">
+                              <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Nombre del Sabor"
+                                  value={color.name}
+                                  onChange={(e) => {
+                                    const updatedColors = [...(editForm.colors || [])];
+                                    updatedColors[idx] = { ...color, name: e.target.value };
+                                    setEditForm({ ...editForm, colors: updatedColors });
+                                  }}
+                                  className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
+                                />
+                                <div className="flex items-center gap-1.5 w-full">
+                                  <input
+                                    type="color"
+                                    value={color.hex.startsWith('#') && color.hex.length === 7 ? color.hex : '#7B52DE'}
+                                    onChange={(e) => {
+                                      const updatedColors = [...(editForm.colors || [])];
+                                      updatedColors[idx] = { ...color, hex: e.target.value };
+                                      setEditForm({ ...editForm, colors: updatedColors });
+                                    }}
+                                    className="w-8 h-6 bg-transparent border-none cursor-pointer shrink-0"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="#HEX (ej. #7B52DE)"
+                                    value={color.hex}
+                                    onChange={(e) => {
+                                      const updatedColors = [...(editForm.colors || [])];
+                                      updatedColors[idx] = { ...color, hex: e.target.value };
+                                      setEditForm({ ...editForm, colors: updatedColors });
+                                    }}
+                                    className="flex-1 rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
+                                  />
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="URL Foto individual (Opcional)"
+                                  value={color.image || ''}
+                                  onChange={(e) => {
+                                    const updatedColors = [...(editForm.colors || [])];
+                                    updatedColors[idx] = { ...color, image: e.target.value };
+                                    setEditForm({ ...editForm, colors: updatedColors });
+                                  }}
+                                  className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                disabled={(editForm.colors || []).length <= 1}
+                                onClick={() => {
+                                  const updatedColors = (editForm.colors || []).filter((_, i) => i !== idx);
+                                  setEditForm({ ...editForm, colors: updatedColors });
+                                }}
+                                className="text-slate-400 hover:text-red-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors cursor-pointer p-1"
+                                title="Eliminar Sabor"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* FEATURES BULLET POINTS MANAGER */}
+                      <div className="border-t border-white/5 pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="block text-[10px] font-mono font-black text-slate-300 uppercase tracking-widest">Características Clave (Bullet Points)</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentFeatures = editForm.features || [];
+                              setEditForm({
+                                ...editForm,
+                                features: [...currentFeatures, 'Nueva característica premium']
+                              });
+                            }}
+                            className="flex items-center gap-1 rounded bg-[#7B52DE]/20 hover:bg-[#7B52DE]/30 border border-[#7B52DE]/30 px-2 py-1 text-[9px] font-black text-white uppercase cursor-pointer"
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>Agregar Característica</span>
+                          </button>
+                        </div>
+                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                          {(editForm.features || []).map((feat, idx) => (
+                            <div key={idx} className="flex gap-2 bg-white/[0.02] border border-white/5 p-2 items-center">
+                              <input
+                                type="text"
+                                placeholder="Describa la característica..."
+                                value={feat}
+                                onChange={(e) => {
+                                    const updatedFeats = [...(editForm.features || [])];
+                                    updatedFeats[idx] = e.target.value;
+                                    setEditForm({ ...editForm, features: updatedFeats });
+                                }}
+                                className="flex-1 rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
+                              />
+                              <button
+                                type="button"
+                                disabled={(editForm.features || []).length <= 1}
+                                onClick={() => {
+                                  const updatedFeats = (editForm.features || []).filter((_, i) => i !== idx);
+                                  setEditForm({ ...editForm, features: updatedFeats });
+                                }}
+                                className="text-slate-400 hover:text-red-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors cursor-pointer p-1"
+                                title="Eliminar Característica"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
                       {/* EXTRA DETAILED SPECIFICATIONS (PUFFS, NICOTINE, ETC) */}

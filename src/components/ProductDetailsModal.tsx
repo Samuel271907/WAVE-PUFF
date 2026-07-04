@@ -77,10 +77,21 @@ export default function ProductDetailsModal({
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#A78BFA] font-black">
               Lab Specification ID
             </span>
-            <span className="h-1.5 w-1.5 bg-emerald-500 animate-pulse" />
-            <span className="font-mono text-[9px] text-emerald-400 uppercase tracking-widest font-bold">
-              Disponible
-            </span>
+            {(product.stock === 0 || product.isAvailable === false) ? (
+              <>
+                <span className="h-1.5 w-1.5 bg-red-500 rounded-full" />
+                <span className="font-mono text-[9px] text-red-400 uppercase tracking-widest font-bold">
+                  Agotado
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="h-1.5 w-1.5 bg-emerald-500 animate-pulse rounded-full" />
+                <span className="font-mono text-[9px] text-emerald-400 uppercase tracking-widest font-bold">
+                  Disponible
+                </span>
+              </>
+            )}
           </div>
           
           <button
@@ -415,14 +426,21 @@ export default function ProductDetailsModal({
         <div className="grid grid-cols-2 gap-4 border-t border-white/10 bg-[#050505] py-5 px-6">
           <button
             onClick={handleAdd}
+            disabled={product.stock === 0 || product.isAvailable === false}
             className={`flex items-center justify-center gap-2 rounded-none py-4 px-4 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-              isAdded
+              product.stock === 0 || product.isAvailable === false
+                ? 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
+                : isAdded
                 ? 'bg-emerald-500 text-white border-none font-black'
                 : 'border border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-[#7B52DE] font-black'
             }`}
             type="button"
           >
-            {isAdded ? (
+            {product.stock === 0 || product.isAvailable === false ? (
+              <>
+                <span>Agotado</span>
+              </>
+            ) : isAdded ? (
               <>
                 <Check className="h-4 w-4" />
                 <span>Agregado al Carrito</span>
@@ -437,7 +455,12 @@ export default function ProductDetailsModal({
 
           <button
             onClick={handleWhatsAppOrder}
-            className="flex items-center justify-center gap-2 rounded-none bg-emerald-600 font-sans text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all hover:bg-emerald-500 hover:shadow-emerald-600/10 cursor-pointer"
+            disabled={product.stock === 0 || product.isAvailable === false}
+            className={`flex items-center justify-center gap-2 rounded-none font-sans text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all cursor-pointer ${
+              product.stock === 0 || product.isAvailable === false
+                ? 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
+                : 'bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-600/10'
+            }`}
             type="button"
           >
             <MessageSquare className="h-4.5 w-4.5 shrink-0" />
