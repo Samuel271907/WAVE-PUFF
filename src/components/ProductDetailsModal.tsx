@@ -7,6 +7,7 @@ interface ProductDetailsModalProps {
   onClose: () => void;
   onAddToCart: (product: Product, selectedColor: string, e: React.MouseEvent) => void;
   onSendWhatsApp: (message: string) => void;
+  onAddReview?: (productId: string, review: Review) => void;
 }
 
 export default function ProductDetailsModal({
@@ -14,6 +15,7 @@ export default function ProductDetailsModal({
   onClose,
   onAddToCart,
   onSendWhatsApp,
+  onAddReview,
 }: ProductDetailsModalProps) {
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'specs' | 'reviews'>('specs');
@@ -64,6 +66,10 @@ export default function ProductDetailsModal({
     setReviewName('');
     setReviewComment('');
     setReviewRating(5);
+
+    if (onAddReview) {
+      onAddReview(product.id, newReview);
+    }
   };
 
   return (

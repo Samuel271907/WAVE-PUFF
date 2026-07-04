@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A vaping product catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "brand": { "type": "string" },
+        "category": { "type": "string" },
+        "categoryLabel": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "features": { "type": "array" },
+        "colors": { "type": "array" },
+        "puffs": { "type": "number" },
+        "nicotine": { "type": "string" },
+        "battery": { "type": "string" },
+        "capacity": { "type": "string" },
+        "stock": { "type": "number" },
+        "isAvailable": { "type": "boolean" },
+        "isPopular": { "type": "boolean" },
+        "isNew": { "type": "boolean" },
+        "reviews": { "type": "array" }
+      },
+      "required": ["id", "name", "brand", "category", "price", "description", "stock", "isAvailable"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of vaping products"
+    }
+  }
+}

@@ -7,10 +7,12 @@ import ProductDetailsModal from './components/ProductDetailsModal';
 import CartSidebar from './components/CartSidebar';
 import FAQSection from './components/FAQSection';
 import WhatsAppButton from './components/WhatsAppButton';
-import { Product, CartItem } from './types';
+import { Product, CartItem, Review } from './types';
 import { PRODUCTS } from './data';
 import Logo from './components/Logo';
 import AgeVerificationGate from './components/AgeVerificationGate';
+import { db, OperationType, handleFirestoreError } from './firebase';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from 'firebase/firestore';
 
 // Obscured verification helper to protect the admin pass "2026W4ve." from plain-text exposure
 const verifyAdminPassword = (password: string): boolean => {
@@ -40,51 +42,41 @@ export default function App() {
   // PRODUCTS STATE & PERSISTENCE
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
 
-  const syncProductsToServer = async (updatedProducts: Product[]) => {
-    try {
-      await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedProducts),
-      });
-    } catch (err) {
-      console.error('Error synchronizing with server:', err);
-    }
-  };
-
   // Clean up any stale legacy products from local storage to prevent any interference
   useEffect(() => {
     localStorage.removeItem('wave_puff_products');
   }, []);
 
+  // Real-time synchronization with Firestore
   useEffect(() => {
-    const fetchFromStore = async () => {
+    const colRef = collection(db, 'products');
+    
+    const unsubscribe = onSnapshot(colRef, async (snapshot) => {
       try {
-        // Appending timestamp as a cache-busting parameter to bypass browser and proxy caching
-        const res = await fetch(`/api/products?t=${Date.now()}`);
-        if (res.ok) {
-          const data = await res.json();
-          // Avoid setting if they are identical, or if we are currently editing/creating a product
-          if (!editingId) {
-            setProducts((prev) => {
-              if (JSON.stringify(prev) !== JSON.stringify(data)) {
-                return data;
-              }
-              return prev;
-            });
+        if (snapshot.empty) {
+          console.log('Firestore products collection is empty. Seeding with default PRODUCTS...');
+          // Seed the database with defaults
+          for (const item of PRODUCTS) {
+            await setDoc(doc(db, 'products', item.id), item);
           }
+        } else {
+          const list: Product[] = [];
+          snapshot.forEach((docSnap) => {
+            list.push(docSnap.data() as Product);
+          });
+          setProducts(list);
         }
       } catch (err) {
-        console.error('Error fetching backend products:', err);
+        console.error('Error handling snapshot:', err);
+        handleFirestoreError(err, OperationType.GET, 'products');
       }
-    };
+    }, (error) => {
+      console.error('Snapshot error callback:', error);
+      handleFirestoreError(error, OperationType.GET, 'products');
+    });
 
-    fetchFromStore();
-    const interval = setInterval(fetchFromStore, 4000); // Poll every 4 seconds for immediate sync
-    return () => clearInterval(interval);
-  }, [editingId]);
+    return () => unsubscribe();
+  }, []);
 
   // Derived Brand Options dynamically so edits show up instantly in filter selectors!
   const derivedBrands = ['Todos', ...Array.from(new Set(products.map((p) => p.brand)))];
@@ -185,40 +177,36 @@ export default function App() {
     setEditForm({ ...prod });
   };
 
-  const toggleProductAvailability = (id: string) => {
-    let nextProducts: Product[] = [];
-    setProducts((prev) => {
-      nextProducts = prev.map((p) => {
-        if (p.id === id) {
-          const currentStatus = p.isAvailable !== false && p.stock > 0;
-          const nextStatus = !currentStatus;
-          let nextStock = p.stock;
-          if (!nextStatus) {
-            nextStock = 0;
-          } else {
-            if (p.stock === 0) {
-              nextStock = 15; // default restocked amount
-            }
-          }
-          
-          const updatedProduct = { ...p, isAvailable: nextStatus, stock: nextStock };
-          
-          // Sync with the active editor form if we are currently editing this product
-          if (editingId === id) {
-            setEditForm((prevForm) => ({
-              ...prevForm,
-              isAvailable: nextStatus,
-              stock: nextStock
-            }));
-          }
-          
-          return updatedProduct;
-        }
-        return p;
-      });
-      syncProductsToServer(nextProducts);
-      return nextProducts;
-    });
+  const toggleProductAvailability = async (id: string) => {
+    const product = products.find((p) => p.id === id);
+    if (!product) return;
+
+    const currentStatus = product.isAvailable !== false && product.stock > 0;
+    const nextStatus = !currentStatus;
+    let nextStock = product.stock;
+    if (!nextStatus) {
+      nextStock = 0;
+    } else {
+      if (product.stock === 0) {
+        nextStock = 15; // default restocked amount
+      }
+    }
+
+    const updatedProduct = { ...product, isAvailable: nextStatus, stock: nextStock };
+
+    try {
+      await setDoc(doc(db, 'products', id), updatedProduct);
+      if (editingId === id) {
+        setEditForm((prevForm) => ({
+          ...prevForm,
+          isAvailable: nextStatus,
+          stock: nextStock
+        }));
+      }
+    } catch (err) {
+      console.error('Error toggling availability:', err);
+      handleFirestoreError(err, OperationType.WRITE, `products/${id}`);
+    }
   };
 
   const startCreating = () => {
@@ -246,7 +234,7 @@ export default function App() {
     });
   };
 
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
     const errors: string[] = [];
 
     if (!editForm.name || editForm.name.trim().length < 3) {
@@ -315,34 +303,27 @@ export default function App() {
       reviews: editForm.reviews || []
     };
 
-    let nextProducts: Product[] = [];
-    setProducts((prev) => {
-      const idx = prev.findIndex((p) => p.id === finalProduct.id);
-      if (idx > -1) {
-        nextProducts = [...prev];
-        nextProducts[idx] = finalProduct;
-      } else {
-        nextProducts = [...prev, finalProduct];
-      }
-      syncProductsToServer(nextProducts);
-      return nextProducts;
-    });
-
-    setEditingId(null);
-    setEditForm({});
+    try {
+      await setDoc(doc(db, 'products', finalProduct.id), finalProduct);
+      setEditingId(null);
+      setEditForm({});
+    } catch (err) {
+      console.error('Error saving product:', err);
+      handleFirestoreError(err, OperationType.WRITE, `products/${finalProduct.id}`);
+    }
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (confirm('¿Estás seguro de que deseas eliminar este producto permanentemente del catálogo?')) {
-      let nextProducts: Product[] = [];
-      setProducts((prev) => {
-        nextProducts = prev.filter((p) => p.id !== id);
-        syncProductsToServer(nextProducts);
-        return nextProducts;
-      });
-      if (editingId === id) {
-        setEditingId(null);
-        setEditForm({});
+      try {
+        await deleteDoc(doc(db, 'products', id));
+        if (editingId === id) {
+          setEditingId(null);
+          setEditForm({});
+        }
+      } catch (err) {
+        console.error('Error deleting product:', err);
+        handleFirestoreError(err, OperationType.DELETE, `products/${id}`);
       }
     }
   };
@@ -350,22 +331,37 @@ export default function App() {
   const handleResetToDefaults = async () => {
     if (confirm('¿Deseas restablecer todos los productos a los valores iniciales de fábrica? Esto eliminará tus ediciones actuales.')) {
       try {
-        const res = await fetch('/api/products/reset', { method: 'POST' });
-        if (res.ok) {
-          const data = await res.json();
-          setProducts(data.products);
-          localStorage.removeItem('wave_puff_products');
-          setEditingId(null);
-          setEditForm({});
+        const colRef = collection(db, 'products');
+        const snapshot = await getDocs(colRef);
+        for (const docSnap of snapshot.docs) {
+          await deleteDoc(docSnap.ref);
         }
-      } catch (err) {
-        console.error('Error resetting products:', err);
-        // Fallback local reset
-        setProducts(PRODUCTS);
-        localStorage.removeItem('wave_puff_products');
         setEditingId(null);
         setEditForm({});
+      } catch (err) {
+        console.error('Error resetting products:', err);
+        handleFirestoreError(err, OperationType.DELETE, 'products');
       }
+    }
+  };
+
+  const handleAddReview = async (productId: string, newReview: Review) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+
+    const updatedReviews = [newReview, ...(product.reviews || [])];
+    const updatedProduct = {
+      ...product,
+      reviews: updatedReviews,
+      reviewsCount: updatedReviews.length,
+      rating: Number((updatedReviews.reduce((acc, r) => acc + r.rating, 0) / updatedReviews.length).toFixed(1))
+    };
+
+    try {
+      await setDoc(doc(db, 'products', productId), updatedProduct);
+    } catch (err) {
+      console.error('Error adding review:', err);
+      handleFirestoreError(err, OperationType.WRITE, `products/${productId}`);
     }
   };
 
@@ -570,6 +566,7 @@ export default function App() {
             onClose={() => setSelectedProduct(null)}
             onAddToCart={handleAddToCart}
             onSendWhatsApp={handleSendWhatsApp}
+            onAddReview={handleAddReview}
           />
         );
       })()}
