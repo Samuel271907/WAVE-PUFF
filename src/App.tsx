@@ -33,15 +33,59 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Active product being edited or created
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Product>>({});
+
   // PRODUCTS STATE & PERSISTENCE
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('wave_puff_products');
     return saved ? JSON.parse(saved) : PRODUCTS;
   });
 
+  const syncProductsToServer = async (updatedProducts: Product[]) => {
+    try {
+      await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedProducts),
+      });
+    } catch (err) {
+      console.error('Error synchronizing with server:', err);
+    }
+  };
+
   useEffect(() => {
     localStorage.setItem('wave_puff_products', JSON.stringify(products));
   }, [products]);
+
+  useEffect(() => {
+    const fetchFromStore = async () => {
+      try {
+        const res = await fetch('/api/products');
+        if (res.ok) {
+          const data = await res.json();
+          // Avoid setting if they are identical, or if we are currently editing/creating a product
+          if (!editingId) {
+            setProducts((prev) => {
+              if (JSON.stringify(prev) !== JSON.stringify(data)) {
+                return data;
+              }
+              return prev;
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching backend products:', err);
+      }
+    };
+
+    fetchFromStore();
+    const interval = setInterval(fetchFromStore, 4000); // Poll every 4 seconds for immediate sync
+    return () => clearInterval(interval);
+  }, [editingId]);
 
   // Derived Brand Options dynamically so edits show up instantly in filter selectors!
   const derivedBrands = ['Todos', ...Array.from(new Set(products.map((p) => p.brand)))];
@@ -53,10 +97,6 @@ export default function App() {
   });
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
-
-  // Active product being edited or created
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Product>>({});
 
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'vapers' | 'capsulas' | 'baterias'>('all');
   const [selectedBrand, setSelectedBrand] = useState<string>('Todos');
@@ -147,8 +187,9 @@ export default function App() {
   };
 
   const toggleProductAvailability = (id: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
+    let nextProducts: Product[] = [];
+    setProducts((prev) => {
+      nextProducts = prev.map((p) => {
         if (p.id === id) {
           const currentStatus = p.isAvailable !== false && p.stock > 0;
           const nextStatus = !currentStatus;
@@ -175,8 +216,10 @@ export default function App() {
           return updatedProduct;
         }
         return p;
-      })
-    );
+      });
+      syncProductsToServer(nextProducts);
+      return nextProducts;
+    });
   };
 
   const startCreating = () => {
@@ -273,15 +316,17 @@ export default function App() {
       reviews: editForm.reviews || []
     };
 
+    let nextProducts: Product[] = [];
     setProducts((prev) => {
       const idx = prev.findIndex((p) => p.id === finalProduct.id);
       if (idx > -1) {
-        const updated = [...prev];
-        updated[idx] = finalProduct;
-        return updated;
+        nextProducts = [...prev];
+        nextProducts[idx] = finalProduct;
       } else {
-        return [...prev, finalProduct];
+        nextProducts = [...prev, finalProduct];
       }
+      syncProductsToServer(nextProducts);
+      return nextProducts;
     });
 
     setEditingId(null);
@@ -290,7 +335,12 @@ export default function App() {
 
   const handleDeleteProduct = (id: string) => {
     if (confirm('¿Estás seguro de que deseas eliminar este producto permanentemente del catálogo?')) {
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      let nextProducts: Product[] = [];
+      setProducts((prev) => {
+        nextProducts = prev.filter((p) => p.id !== id);
+        syncProductsToServer(nextProducts);
+        return nextProducts;
+      });
       if (editingId === id) {
         setEditingId(null);
         setEditForm({});
@@ -298,12 +348,25 @@ export default function App() {
     }
   };
 
-  const handleResetToDefaults = () => {
+  const handleResetToDefaults = async () => {
     if (confirm('¿Deseas restablecer todos los productos a los valores iniciales de fábrica? Esto eliminará tus ediciones actuales.')) {
-      setProducts(PRODUCTS);
-      localStorage.removeItem('wave_puff_products');
-      setEditingId(null);
-      setEditForm({});
+      try {
+        const res = await fetch('/api/products/reset', { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data.products);
+          localStorage.removeItem('wave_puff_products');
+          setEditingId(null);
+          setEditForm({});
+        }
+      } catch (err) {
+        console.error('Error resetting products:', err);
+        // Fallback local reset
+        setProducts(PRODUCTS);
+        localStorage.removeItem('wave_puff_products');
+        setEditingId(null);
+        setEditForm({});
+      }
     }
   };
 
