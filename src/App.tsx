@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { SlidersHorizontal, ArrowUpDown, ChevronDown, CheckCircle, Smartphone, MapPin, Sparkles, Flame, Percent, Lock, Unlock, Settings, Trash2, Plus, RotateCcw, Edit2, AlertCircle, X, Save, Search, EyeOff, Eye } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { SlidersHorizontal, ArrowUpDown, ChevronDown, CheckCircle, Smartphone, MapPin, Sparkles, Flame, Percent, Lock, Unlock, Settings, Trash2, Plus, RotateCcw, Edit2, AlertCircle, X, Save, Search, EyeOff, Eye, Loader2 } from 'lucide-react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductCard from './components/ProductCard';
@@ -39,6 +39,7 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [adminSearch, setAdminSearch] = useState('');
+  const [isAdminSaving, setIsAdminSaving] = useState(false);
 
   // PRODUCTS STATE & PERSISTENCE
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
@@ -48,32 +49,54 @@ export default function App() {
     localStorage.removeItem('wave_puff_products');
   }, []);
 
-  // Real-time synchronization with Firestore
+  // Track synchronization errors gracefully in UI rather than crashing
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  // 1. Initial Seeding and Validation Check
+  useEffect(() => {
+    const checkAndSeed = async () => {
+      try {
+        const colRef = collection(db, 'products');
+        const snapshot = await getDocs(colRef);
+        if (snapshot.empty) {
+          console.log('Firestore products collection is empty. Seeding with default PRODUCTS...');
+          // Seed the database with defaults. Ensure isAvailable: true is set so it complies with firestore.rules!
+          for (const item of PRODUCTS) {
+            const seedItem = {
+              ...item,
+              isAvailable: item.isAvailable !== false // defaults to true
+            };
+            await setDoc(doc(db, 'products', item.id), seedItem);
+          }
+          console.log('Seeding completed successfully!');
+        }
+      } catch (err) {
+        console.error('Error during initial products check/seeding:', err);
+        setSyncError('Error al conectar o inicializar la base de datos de productos.');
+      }
+    };
+    checkAndSeed();
+  }, []);
+
+  // 2. Real-time synchronization listener (ReadOnly, No inline writes!)
   useEffect(() => {
     const colRef = collection(db, 'products');
     
-    const unsubscribe = onSnapshot(colRef, async (snapshot) => {
+    const unsubscribe = onSnapshot(colRef, (snapshot) => {
       try {
-        if (snapshot.empty) {
-          console.log('Firestore products collection is empty. Seeding with default PRODUCTS...');
-          // Seed the database with defaults
-          for (const item of PRODUCTS) {
-            await setDoc(doc(db, 'products', item.id), item);
-          }
-        } else {
-          const list: Product[] = [];
-          snapshot.forEach((docSnap) => {
-            list.push(docSnap.data() as Product);
-          });
-          setProducts(list);
-        }
+        const list: Product[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as Product);
+        });
+        setProducts(list);
+        setSyncError(null); // Clear errors if sync is working
       } catch (err) {
-        console.error('Error handling snapshot:', err);
-        handleFirestoreError(err, OperationType.GET, 'products');
+        console.error('Error parsing Firestore products snapshot:', err);
+        setSyncError('Error al procesar los datos de productos en tiempo real.');
       }
     }, (error) => {
-      console.error('Snapshot error callback:', error);
-      handleFirestoreError(error, OperationType.GET, 'products');
+      console.error('Firestore snapshot subscription error:', error);
+      setSyncError(`Error de sincronización: ${error.message}`);
     });
 
     return () => unsubscribe();
@@ -173,12 +196,13 @@ export default function App() {
   };
 
   // ADMIN CRITICAL ACTIONS HANDLERS
-  const startEditing = (prod: Product) => {
+  const startEditing = useCallback((prod: Product) => {
     setEditingId(prod.id);
     setEditForm({ ...prod });
-  };
+  }, []);
 
-  const toggleProductAvailability = async (id: string) => {
+  const toggleProductAvailability = useCallback(async (id: string) => {
+    if (isAdminSaving) return;
     const product = products.find((p) => p.id === id);
     if (!product) return;
 
@@ -202,6 +226,7 @@ export default function App() {
 
     const updatedProduct = { ...product, isAvailable: nextAvailable, stock: nextStock };
 
+    setIsAdminSaving(true);
     try {
       await setDoc(doc(db, 'products', id), updatedProduct);
       if (editingId === id) {
@@ -214,10 +239,12 @@ export default function App() {
     } catch (err) {
       console.error('Error toggling availability:', err);
       handleFirestoreError(err, OperationType.WRITE, `products/${id}`);
+    } finally {
+      setIsAdminSaving(false);
     }
-  };
+  }, [products, editingId, isAdminSaving]);
 
-  const startCreating = () => {
+  const startCreating = useCallback(() => {
     const newId = 'prod-' + Date.now();
     setEditingId(newId);
     setEditForm({
@@ -240,9 +267,10 @@ export default function App() {
       isNew: true,
       reviews: []
     });
-  };
+  }, []);
 
-  const handleSaveProduct = async () => {
+  const handleSaveProduct = useCallback(async () => {
+    if (isAdminSaving) return;
     const errors: string[] = [];
 
     if (!editForm.name || editForm.name.trim().length < 3) {
@@ -311,6 +339,7 @@ export default function App() {
       reviews: editForm.reviews || []
     };
 
+    setIsAdminSaving(true);
     try {
       await setDoc(doc(db, 'products', finalProduct.id), finalProduct);
       setEditingId(null);
@@ -318,11 +347,15 @@ export default function App() {
     } catch (err) {
       console.error('Error saving product:', err);
       handleFirestoreError(err, OperationType.WRITE, `products/${finalProduct.id}`);
+    } finally {
+      setIsAdminSaving(false);
     }
-  };
+  }, [editForm, isAdminSaving]);
 
-  const handleDeleteProduct = async (id: string) => {
+  const handleDeleteProduct = useCallback(async (id: string) => {
+    if (isAdminSaving) return;
     if (confirm('¿Estás seguro de que deseas eliminar este producto permanentemente del catálogo?')) {
+      setIsAdminSaving(true);
       try {
         await deleteDoc(doc(db, 'products', id));
         if (editingId === id) {
@@ -332,26 +365,38 @@ export default function App() {
       } catch (err) {
         console.error('Error deleting product:', err);
         handleFirestoreError(err, OperationType.DELETE, `products/${id}`);
+      } finally {
+        setIsAdminSaving(false);
       }
     }
-  };
+  }, [editingId, isAdminSaving]);
 
-  const handleResetToDefaults = async () => {
+  const handleResetToDefaults = useCallback(async () => {
+    if (isAdminSaving) return;
     if (confirm('¿Deseas restablecer todos los productos a los valores iniciales de fábrica? Esto eliminará tus ediciones actuales.')) {
+      setIsAdminSaving(true);
       try {
         const colRef = collection(db, 'products');
         const snapshot = await getDocs(colRef);
+        // Delete all current docs
         for (const docSnap of snapshot.docs) {
           await deleteDoc(docSnap.ref);
+        }
+        // Seed default products with isAvailable explicitly set to true
+        for (const item of PRODUCTS) {
+          const seedItem = { ...item, isAvailable: item.isAvailable !== false };
+          await setDoc(doc(db, 'products', item.id), seedItem);
         }
         setEditingId(null);
         setEditForm({});
       } catch (err) {
         console.error('Error resetting products:', err);
         handleFirestoreError(err, OperationType.DELETE, 'products');
+      } finally {
+        setIsAdminSaving(false);
       }
     }
-  };
+  }, [isAdminSaving]);
 
   const handleAddReview = async (productId: string, newReview: Review) => {
     const product = products.find((p) => p.id === productId);
@@ -665,6 +710,20 @@ export default function App() {
               </button>
             </div>
 
+            {/* Sync Error Alert Banner */}
+            {syncError && (
+              <div className="mb-4 bg-red-500/10 border border-red-500/20 px-4 py-2 flex items-center gap-2 text-red-400 font-mono text-xs">
+                <AlertCircle className="h-4 w-4 shrink-0 animate-bounce" />
+                <span className="flex-1"><strong>Sincronización:</strong> {syncError}</span>
+                <button 
+                  onClick={() => setSyncError(null)}
+                  className="text-[10px] uppercase font-black tracking-wider hover:text-white cursor-pointer px-1.5 py-0.5 border border-red-500/30 bg-red-500/5"
+                >
+                  Omitir
+                </button>
+              </div>
+            )}
+
             {/* Admin Verification Input View */}
             {!isAdminVerified ? (
               <div className="flex flex-col items-center justify-center py-12 max-w-md mx-auto w-full text-center">
@@ -796,8 +855,8 @@ export default function App() {
                         return (
                           <div 
                             key={p.id}
-                            onClick={() => startEditing(p)}
-                            className={`p-3 border transition-colors flex items-center justify-between gap-3 cursor-pointer ${editingId === p.id ? 'border-[#7B52DE] bg-[#7B52DE]/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
+                            onClick={() => !isAdminSaving && startEditing(p)}
+                            className={`p-3 border transition-colors flex items-center justify-between gap-3 ${isAdminSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${editingId === p.id ? 'border-[#7B52DE] bg-[#7B52DE]/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
                           >
                             <div className="flex items-center gap-2 min-w-0 flex-1">
                               {/* Tiny image thumbnail */}
@@ -827,8 +886,9 @@ export default function App() {
                                   e.stopPropagation();
                                   toggleProductAvailability(p.id);
                                 }}
+                                disabled={isAdminSaving}
                                 title={badgeTitle}
-                                className={`px-2 py-0.5 text-[8px] font-bold uppercase border cursor-pointer select-none transition-all active:scale-95 ${badgeStyle}`}
+                                className={`px-2 py-0.5 text-[8px] font-bold uppercase border cursor-pointer select-none transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${badgeStyle}`}
                               >
                                 {badgeText}
                               </button>
@@ -839,8 +899,9 @@ export default function App() {
                                     e.stopPropagation();
                                     startEditing(p);
                                   }}
+                                  disabled={isAdminSaving}
                                   title="Editar"
-                                  className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                                  className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                   <Edit2 className="h-3.5 w-3.5" />
                                 </button>
@@ -849,8 +910,9 @@ export default function App() {
                                     e.stopPropagation();
                                     handleDeleteProduct(p.id);
                                   }}
+                                  disabled={isAdminSaving}
                                   title="Eliminar"
-                                  className="p-1 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                                  className="p-1 text-slate-400 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
@@ -865,10 +927,15 @@ export default function App() {
                   <div className="mt-4 pt-4 border-t border-white/5 shrink-0">
                     <button
                       onClick={handleResetToDefaults}
-                      className="w-full flex items-center justify-center gap-1.5 border border-red-500/15 bg-red-500/5 hover:bg-red-500/10 text-red-400 py-2.5 text-[9px] font-mono tracking-widest uppercase cursor-pointer transition-colors"
+                      disabled={isAdminSaving}
+                      className="w-full flex items-center justify-center gap-1.5 border border-red-500/15 bg-red-500/5 hover:bg-red-500/10 text-red-400 py-2.5 text-[9px] font-mono tracking-widest uppercase cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <RotateCcw className="h-3 w-3" />
-                      <span>Restablecer Todo de Fábrica</span>
+                      {isAdminSaving ? (
+                        <Loader2 className="h-3 w-3 animate-spin text-red-400" />
+                      ) : (
+                        <RotateCcw className="h-3 w-3" />
+                      )}
+                      <span>{isAdminSaving ? 'Restableciendo...' : 'Restablecer Todo de Fábrica'}</span>
                     </button>
                   </div>
                 </div>
@@ -884,10 +951,15 @@ export default function App() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={handleSaveProduct}
-                            className="flex items-center gap-1 bg-[#7B52DE] hover:bg-[#8B5CF6] text-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors"
+                            disabled={isAdminSaving}
+                            className="flex items-center gap-1.5 bg-[#7B52DE] hover:bg-[#8B5CF6] text-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Save className="h-3 w-3" />
-                            <span>Guardar</span>
+                            {isAdminSaving ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Save className="h-3 w-3" />
+                            )}
+                            <span>{isAdminSaving ? 'Guardando...' : 'Guardar'}</span>
                           </button>
                           <button
                             onClick={() => {
