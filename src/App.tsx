@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SlidersHorizontal, ArrowUpDown, ChevronDown, CheckCircle, Smartphone, MapPin, Sparkles, Flame, Percent, Lock, Unlock, Settings, Trash2, Plus, RotateCcw, Edit2, AlertCircle, X, Save } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, ChevronDown, CheckCircle, Smartphone, MapPin, Sparkles, Flame, Percent, Lock, Unlock, Settings, Trash2, Plus, RotateCcw, Edit2, AlertCircle, X, Save, Search, EyeOff, Eye } from 'lucide-react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductCard from './components/ProductCard';
@@ -38,6 +38,7 @@ export default function App() {
   // Active product being edited or created
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
+  const [adminSearch, setAdminSearch] = useState('');
 
   // PRODUCTS STATE & PERSISTENCE
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
@@ -181,25 +182,32 @@ export default function App() {
     const product = products.find((p) => p.id === id);
     if (!product) return;
 
-    const currentStatus = product.isAvailable !== false && product.stock > 0;
-    const nextStatus = !currentStatus;
+    const isCurrentlyActive = product.isAvailable !== false;
+    const hasStock = product.stock > 0;
+    
+    let nextAvailable = product.isAvailable;
     let nextStock = product.stock;
-    if (!nextStatus) {
+
+    if (isCurrentlyActive && hasStock) {
+      // Active and has stock -> Toggle to Agotado (unavailable)
+      nextAvailable = false;
       nextStock = 0;
     } else {
-      if (product.stock === 0) {
+      // Inactive or out of stock -> Toggle to Disponible (available)
+      nextAvailable = true;
+      if (product.stock <= 0) {
         nextStock = 15; // default restocked amount
       }
     }
 
-    const updatedProduct = { ...product, isAvailable: nextStatus, stock: nextStock };
+    const updatedProduct = { ...product, isAvailable: nextAvailable, stock: nextStock };
 
     try {
       await setDoc(doc(db, 'products', id), updatedProduct);
       if (editingId === id) {
         setEditForm((prevForm) => ({
           ...prevForm,
-          isAvailable: nextStatus,
+          isAvailable: nextAvailable,
           stock: nextStock
         }));
       }
@@ -297,7 +305,7 @@ export default function App() {
       battery: editForm.battery ? String(editForm.battery).trim() : undefined,
       capacity: editForm.capacity ? String(editForm.capacity).trim() : undefined,
       stock: Number(editForm.stock),
-      isAvailable: editForm.isAvailable !== false && Number(editForm.stock) > 0,
+      isAvailable: editForm.isAvailable !== false,
       isPopular: !!editForm.isPopular,
       isNew: !!editForm.isNew,
       reviews: editForm.reviews || []
@@ -725,8 +733,8 @@ export default function App() {
               <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-6 min-h-[400px]">
                 
                 {/* Product List Selector Column */}
-                <div className="w-full md:w-5/12 flex flex-col border-r border-white/5 pr-0 md:pr-6 overflow-y-auto max-h-[300px] md:max-h-[50vh]">
-                  <div className="flex items-center justify-between mb-4 shrink-0">
+                <div className="w-full md:w-5/12 flex flex-col border-r border-white/5 pr-0 md:pr-6 overflow-hidden max-h-[450px] md:max-h-[50vh]">
+                  <div className="flex items-center justify-between mb-3 shrink-0">
                     <div className="flex flex-col">
                       <span className="text-xs font-mono font-bold uppercase text-[#A78BFA] tracking-wider">Dispositivos ({products.length})</span>
                       <span className="text-[8px] text-slate-500 font-mono">Haz clic en el estado para alternarlo rápido</span>
@@ -740,68 +748,117 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="space-y-2 flex-grow overflow-y-auto pr-1">
-                    {products.map((p) => {
-                      const isAvail = p.isAvailable !== false && p.stock > 0;
-                      return (
-                        <div 
-                          key={p.id}
-                          onClick={() => startEditing(p)}
-                          className={`p-3 border transition-colors flex items-center justify-between gap-3 cursor-pointer ${editingId === p.id ? 'border-[#7B52DE] bg-[#7B52DE]/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <h5 className="text-xs font-black text-white truncate uppercase tracking-wide">{p.name}</h5>
-                            <div className="flex items-center flex-wrap gap-2 mt-1.5 font-mono text-[9px] text-slate-400">
-                              <span>Stock: <strong className={p.stock <= 5 ? 'text-amber-500' : 'text-white'}>{p.stock}</strong></span>
-                              <span>·</span>
-                              <span className="text-[#A78BFA]">${p.price.toLocaleString('es-CO')}</span>
-                            </div>
-                          </div>
-                          
-                          {/* Quick Actions & Status */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            {/* Inventory status toggler badge */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleProductAvailability(p.id);
-                              }}
-                              title={isAvail ? "Marcar como Agotado" : "Marcar como Disponible (Restablece 15UDS)"}
-                              className={`px-2 py-0.5 text-[8px] font-bold uppercase border cursor-pointer select-none transition-all active:scale-95 ${
-                                isAvail 
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
-                                  : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
-                              }`}
-                            >
-                              {isAvail ? 'Disponible' : 'Agotado'}
-                            </button>
+                  {/* Search filter input */}
+                  <div className="relative mb-3 shrink-0">
+                    <input
+                      type="text"
+                      placeholder="Buscar producto por nombre o marca..."
+                      value={adminSearch}
+                      onChange={(e) => setAdminSearch(e.target.value)}
+                      className="w-full rounded-none border border-white/10 bg-black/40 pl-8 pr-3 py-1.5 text-xs text-white outline-none focus:border-[#7B52DE]"
+                    />
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-500" />
+                    {adminSearch && (
+                      <button
+                        onClick={() => setAdminSearch('')}
+                        className="absolute right-2.5 top-1.5 text-slate-400 hover:text-white text-[10px] font-mono cursor-pointer"
+                      >
+                        [limpiar]
+                      </button>
+                    )}
+                  </div>
 
-                            <div className="flex items-center gap-0.5">
+                  <div className="space-y-2 flex-grow overflow-y-auto pr-1">
+                    {products
+                      .filter((p) => {
+                        if (!adminSearch.trim()) return true;
+                        const query = adminSearch.toLowerCase();
+                        return p.name.toLowerCase().includes(query) || p.brand.toLowerCase().includes(query);
+                      })
+                      .map((p) => {
+                        const isCurrentlyActive = p.isAvailable !== false;
+                        const hasStock = p.stock > 0;
+                        
+                        let badgeText = 'Disponible';
+                        let badgeStyle = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20';
+                        let badgeTitle = 'Activo y con stock. Haz clic para agotarlo (Stock 0)';
+
+                        if (!isCurrentlyActive) {
+                          badgeText = 'Inactivo';
+                          badgeStyle = 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20 hover:bg-zinc-500/20';
+                          badgeTitle = 'Oculto en el catálogo. Haz clic para activar (Stock 15)';
+                        } else if (!hasStock) {
+                          badgeText = 'Agotado';
+                          badgeStyle = 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20';
+                          badgeTitle = 'Activo pero sin stock. Haz clic para abastecer (Stock 15)';
+                        }
+
+                        return (
+                          <div 
+                            key={p.id}
+                            onClick={() => startEditing(p)}
+                            className={`p-3 border transition-colors flex items-center justify-between gap-3 cursor-pointer ${editingId === p.id ? 'border-[#7B52DE] bg-[#7B52DE]/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {/* Tiny image thumbnail */}
+                              <div className="h-8 w-8 rounded-none bg-black border border-white/10 shrink-0 overflow-hidden flex items-center justify-center">
+                                {p.image ? (
+                                  <img src={p.image} alt="" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <span className="text-[9px] text-slate-600 font-mono">PUFF</span>
+                                )}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <h5 className="text-xs font-black text-white truncate uppercase tracking-wide">{p.name}</h5>
+                                <div className="flex items-center flex-wrap gap-2 mt-1 font-mono text-[9px] text-slate-400">
+                                  <span>Stock: <strong className={p.stock <= 5 ? 'text-amber-500' : 'text-white'}>{p.stock}</strong></span>
+                                  <span>·</span>
+                                  <span className="text-[#A78BFA]">${p.price.toLocaleString('es-CO')}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Quick Actions & Status */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {/* Inventory status toggler badge */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  startEditing(p);
+                                  toggleProductAvailability(p.id);
                                 }}
-                                title="Editar"
-                                className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                                title={badgeTitle}
+                                className={`px-2 py-0.5 text-[8px] font-bold uppercase border cursor-pointer select-none transition-all active:scale-95 ${badgeStyle}`}
                               >
-                                <Edit2 className="h-3.5 w-3.5" />
+                                {badgeText}
                               </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteProduct(p.id);
-                                }}
-                                title="Eliminar"
-                                className="p-1 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+
+                              <div className="flex items-center gap-0.5">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditing(p);
+                                  }}
+                                  title="Editar"
+                                  className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteProduct(p.id);
+                                  }}
+                                  title="Eliminar"
+                                  className="p-1 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
 
                   {/* FACTORY RESET TRIGGER */}
@@ -892,8 +949,7 @@ export default function App() {
                               const newStock = Number(e.target.value);
                               setEditForm({
                                 ...editForm,
-                                stock: newStock,
-                                isAvailable: newStock > 0 ? (editForm.isAvailable !== false) : false
+                                stock: newStock
                               });
                             }}
                             className="w-full rounded-none border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-[#7B52DE]"
@@ -960,21 +1016,19 @@ export default function App() {
 
                       {/* BADGES & STOCK AVAILABILITY TOGGLES */}
                       <div className="flex flex-wrap gap-4 pt-2 pb-1">
-                        <label className="flex items-center gap-2 cursor-pointer select-none bg-white/[0.02] border border-white/10 px-3 py-2">
+                        <label className="flex items-center gap-2 cursor-pointer select-none bg-white/[0.02] border border-white/10 px-3 py-2" title="Desactivar oculta el producto del catálogo principal o lo muestra como agotado">
                           <input
                             type="checkbox"
-                            checked={editForm.isAvailable !== false && (editForm.stock || 0) > 0}
+                            checked={editForm.isAvailable !== false}
                             onChange={(e) => {
-                              const checked = e.target.checked;
                               setEditForm({
                                 ...editForm,
-                                isAvailable: checked,
-                                stock: checked ? (editForm.stock && editForm.stock > 0 ? editForm.stock : 15) : 0
+                                isAvailable: e.target.checked
                               });
                             }}
                             className="rounded-none border-white/10 accent-[#7B52DE]"
                           />
-                          <span className="text-[10px] font-mono font-black text-white uppercase tracking-widest">Disponible para Venta</span>
+                          <span className="text-[10px] font-mono font-black text-white uppercase tracking-widest">Habilitado en Catálogo</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer select-none bg-white/[0.02] border border-white/10 px-3 py-2">
                           <input
