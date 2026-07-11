@@ -213,11 +213,11 @@ export default function App() {
     let nextStock = product.stock;
 
     if (isCurrentlyActive && hasStock) {
-      // Active and has stock -> Toggle to Agotado (unavailable)
-      nextAvailable = false;
+      // Active and has stock -> Toggle to Agotado (Keep active but set 0 stock)
+      nextAvailable = true;
       nextStock = 0;
     } else {
-      // Inactive or out of stock -> Toggle to Disponible (available)
+      // Inactive or out of stock -> Toggle to Disponible (available with stock)
       nextAvailable = true;
       if (product.stock <= 0) {
         nextStock = 15; // default restocked amount
@@ -420,6 +420,9 @@ export default function App() {
 
   // FILTER & SORT INTERACTION
   const filteredProducts = products.filter((product) => {
+    // Hide inactive products from customer catalog
+    if (product.isAvailable === false) return false;
+    
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesBrand = selectedBrand === 'Todos' || product.brand === selectedBrand;
     return matchesCategory && matchesBrand;
