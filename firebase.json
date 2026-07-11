@@ -1,0 +1,8 @@
+{
+  "firestore": [
+    {
+      "database": "ai-studio-wavepuff-56824997-17cd-426c-892b-da3e6b94b1b6",
+      "rules": "firestore.rules"
+    }
+  ]
+}
