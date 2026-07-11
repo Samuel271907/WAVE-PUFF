@@ -1,5 +1,5 @@
 import { X, Minus, Plus, ShoppingBag, Trash2, ArrowRight, MessageSquareCode } from 'lucide-react';
-import { CartItem } from '../types';
+import { CartItem, Product } from '../types';
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -8,6 +8,7 @@ interface CartSidebarProps {
   onUpdateQuantity: (productId: string, selectedColor: string, newQty: number) => void;
   onRemoveItem: (productId: string, selectedColor: string) => void;
   onSendWhatsApp: (message: string) => void;
+  products: Product[];
 }
 
 export default function CartSidebar({
@@ -17,24 +18,37 @@ export default function CartSidebar({
   onUpdateQuantity,
   onRemoveItem,
   onSendWhatsApp,
+  products,
 }: CartSidebarProps) {
   if (!isOpen) return null;
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  // Resolve fresh prices and stocks in real-time
+  const updatedCartItems = cartItems.map(item => {
+    const freshProduct = products.find(p => p.id === item.product.id) || item.product;
+    const isOOS = freshProduct.stock === 0 || freshProduct.isAvailable === false;
+    return {
+      ...item,
+      freshProduct,
+      isOOS,
+    };
+  });
+
+  const hasAnyOOS = updatedCartItems.some(item => item.isOOS);
+  const subtotal = updatedCartItems.reduce((acc, item) => acc + item.freshProduct.price * item.quantity, 0);
 
   const handleCheckout = () => {
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0 || hasAnyOOS) return;
 
     let message = `🌊 *PEDIDO WAVE PUFF* 🌊\n`;
     message += `-------------------------------\n`;
     message += `🛒 *Detalle de mi Carrito:*\n\n`;
 
-    cartItems.forEach((item, idx) => {
-      const lineTotal = item.product.price * item.quantity;
-      message += `${idx + 1}. *${item.product.name}*\n`;
+    updatedCartItems.forEach((item, idx) => {
+      const lineTotal = item.freshProduct.price * item.quantity;
+      message += `${idx + 1}. *${item.freshProduct.name}*\n`;
       message += `   · Sabor/Color: ${item.selectedColor}\n`;
       message += `   · Cantidad: ${item.quantity}\n`;
-      message += `   · Unidad: $${item.product.price.toLocaleString('es-CO')} COP\n`;
+      message += `   · Unidad: $${item.freshProduct.price.toLocaleString('es-CO')} COP\n`;
       message += `   · Total Línea: $${lineTotal.toLocaleString('es-CO')} COP\n`;
       message += `   -------------------------------\n`;
     });
@@ -77,26 +91,37 @@ export default function CartSidebar({
 
         {/* CART LIST OR EMPTY */}
         <div className="flex-grow overflow-y-auto p-6 space-y-4">
-          {cartItems.length > 0 ? (
-            cartItems.map((item) => (
+          {updatedCartItems.length > 0 ? (
+            updatedCartItems.map((item) => (
               <div
-                key={`${item.product.id}-${item.selectedColor}`}
-                className="flex gap-4 rounded-none border border-white/10 bg-white/[0.02] p-4 transition-all hover:border-[#7B52DE]/50"
+                key={`${item.freshProduct.id}-${item.selectedColor}`}
+                className={`flex gap-4 rounded-none border p-4 transition-all ${
+                  item.isOOS 
+                    ? 'border-red-500/30 bg-red-500/[0.02] hover:border-red-500/50' 
+                    : 'border-white/10 bg-white/[0.02] hover:border-[#7B52DE]/50'
+                }`}
               >
                 {/* Micro preview */}
                 <div
-                  className="h-14 w-14 shrink-0 rounded-none border border-white/10 flex items-center justify-center overflow-hidden bg-black/45"
+                  className={`h-14 w-14 shrink-0 rounded-none border flex items-center justify-center overflow-hidden bg-black/45 relative ${
+                    item.isOOS ? 'border-red-500/20' : 'border-white/10'
+                  }`}
                 >
-                  {item.product.image && (item.product.image.includes('.') || item.product.image.includes('/') || item.product.image.startsWith('data:')) ? (
+                  {item.freshProduct.image && (item.freshProduct.image.includes('.') || item.freshProduct.image.includes('/') || item.freshProduct.image.startsWith('data:')) ? (
                     <img 
-                      src={item.product.image} 
-                      className="h-full w-full object-cover" 
-                      alt={item.product.name} 
+                      src={item.freshProduct.image} 
+                      className={`h-full w-full object-cover ${item.isOOS ? 'grayscale opacity-40' : ''}`} 
+                      alt={item.freshProduct.name} 
                       referrerPolicy="no-referrer" 
                     />
                   ) : (
-                    <div className="h-11 w-6 border border-white/20 bg-black/80 flex items-center justify-center" style={{ backgroundColor: item.product.image || '#7B52DE' }}>
-                      <span className="text-[5px] text-white/40 uppercase">WP</span>
+                    <div className="h-11 w-6 border border-white/20 bg-black/80 flex items-center justify-center" style={{ backgroundColor: item.freshProduct.image || '#7B52DE', opacity: item.isOOS ? 0.4 : 1 }}>
+                      <span className="text-[5px] text-white/40 uppercase font-black">WP</span>
+                    </div>
+                  )}
+                  {item.isOOS && (
+                    <div className="absolute inset-0 bg-red-950/40 flex items-center justify-center">
+                      <span className="text-[7px] font-black tracking-widest text-red-400 uppercase bg-black/80 px-1 border border-red-500/30">OOS</span>
                     </div>
                   )}
                 </div>
@@ -104,21 +129,28 @@ export default function CartSidebar({
                 <div className="flex flex-1 flex-col justify-between">
                   <div>
                     <div className="flex items-start justify-between">
-                      <h4 className="text-xs font-black text-white uppercase tracking-wider truncate max-w-[160px]">
-                        {item.product.name}
+                      <h4 className={`text-xs font-black uppercase tracking-wider truncate max-w-[160px] ${item.isOOS ? 'text-red-400 line-through' : 'text-white'}`}>
+                        {item.freshProduct.name}
                       </h4>
                       <button
-                        onClick={() => onRemoveItem(item.product.id, item.selectedColor)}
-                        className="text-white/30 transition-colors hover:text-[#7B52DE] cursor-pointer"
+                        onClick={() => onRemoveItem(item.freshProduct.id, item.selectedColor)}
+                        className="text-white/30 transition-colors hover:text-red-400 cursor-pointer"
                         title="Eliminar"
                         type="button"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                    <span className="text-[9px] font-mono text-[#A78BFA] uppercase tracking-wider mt-0.5 block">
-                      Variante: {item.selectedColor}
-                    </span>
+                    <div className="flex flex-col gap-1 mt-0.5">
+                      <span className="text-[9px] font-mono text-[#A78BFA] uppercase tracking-wider block">
+                        Variante: {item.selectedColor}
+                      </span>
+                      {item.isOOS && (
+                        <span className="inline-self-start bg-red-500/10 text-red-400 text-[8px] font-black px-1.5 py-0.5 border border-red-500/20 uppercase tracking-widest">
+                          Agotado temporalmente
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Quantity controls & Line subtotal row */}
@@ -126,7 +158,7 @@ export default function CartSidebar({
                     <div className="flex items-center rounded-none border border-white/10 bg-[#050505] p-0.5">
                       <button
                         type="button"
-                        onClick={() => onUpdateQuantity(item.product.id, item.selectedColor, item.quantity - 1)}
+                        onClick={() => onUpdateQuantity(item.freshProduct.id, item.selectedColor, item.quantity - 1)}
                         className="p-1 text-white/40 hover:text-white cursor-pointer"
                       >
                         <Minus className="h-3 w-3" />
@@ -136,8 +168,9 @@ export default function CartSidebar({
                       </span>
                       <button
                         type="button"
-                        onClick={() => onUpdateQuantity(item.product.id, item.selectedColor, item.quantity + 1)}
-                        className="p-1 text-white/40 hover:text-white cursor-pointer"
+                        disabled={item.isOOS}
+                        onClick={() => onUpdateQuantity(item.freshProduct.id, item.selectedColor, item.quantity + 1)}
+                        className={`p-1 text-white/40 hover:text-white cursor-pointer ${item.isOOS ? 'cursor-not-allowed opacity-20' : ''}`}
                       >
                         <Plus className="h-3 w-3" />
                       </button>
@@ -145,7 +178,7 @@ export default function CartSidebar({
 
                     <div className="text-right">
                       <span className="text-xs font-black tracking-tight text-white">
-                        ${(item.product.price * item.quantity).toLocaleString('es-CO')}
+                        ${(item.freshProduct.price * item.quantity).toLocaleString('es-CO')}
                       </span>
                     </div>
                   </div>
@@ -192,9 +225,23 @@ export default function CartSidebar({
               </div>
             </div>
 
+            {hasAnyOOS && (
+              <div className="bg-red-500/10 border border-red-500/20 p-3 flex flex-col gap-1 rounded-none">
+                <span className="text-[10px] font-black text-red-400 uppercase tracking-wider">Productos Agotados Detectados</span>
+                <p className="text-[9px] text-white/60 font-mono uppercase tracking-tight">
+                  Uno o más vapers en tu carrito no cuentan con stock disponible en este instante. Remuévelos para habilitar el pedido por WhatsApp.
+                </p>
+              </div>
+            )}
+
             <button
               onClick={handleCheckout}
-              className="flex w-full items-center justify-center gap-2 rounded-none bg-emerald-600 py-4 font-sans text-xs font-black uppercase tracking-widest text-white shadow-lg transition-all hover:bg-emerald-500 cursor-pointer"
+              disabled={hasAnyOOS}
+              className={`flex w-full items-center justify-center gap-2 rounded-none py-4 font-sans text-xs font-black uppercase tracking-widest text-white shadow-lg transition-all ${
+                hasAnyOOS 
+                  ? 'bg-zinc-800 border border-white/10 text-zinc-500 cursor-not-allowed' 
+                  : 'bg-emerald-600 hover:bg-emerald-500 cursor-pointer'
+              }`}
             >
               <MessageSquareCode className="h-5 w-5 shrink-0" />
               <span>Enviar Pedido a WhatsApp</span>

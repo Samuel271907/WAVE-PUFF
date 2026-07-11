@@ -127,21 +127,37 @@ export default function Header({ cartCount, onOpenCart, onSelectProduct, product
                       onClick={() => handleSelectResult(product)}
                       className="flex w-full items-center gap-3 rounded-none p-2.5 text-left transition-colors hover:bg-white/5 border-b border-white/5 last:border-b-0"
                     >
-                      {/* Product dynamic color block as representation */}
-                      <div
-                        className="h-10 w-10 shrink-0 rounded-none shadow-inner"
-                        style={{ background: product.image }}
-                      />
+                      {/* Product dynamic image or color representation */}
+                      <div className="h-10 w-10 shrink-0 rounded-none border border-white/10 bg-black overflow-hidden flex items-center justify-center relative">
+                        {product.image && (product.image.includes('.') || product.image.includes('/') || product.image.startsWith('data:')) ? (
+                          <img src={product.image} className={`h-full w-full object-cover ${(product.stock === 0 || product.isAvailable === false) ? 'grayscale opacity-40' : ''}`} alt="" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="h-6 w-3 border border-white/20" style={{ backgroundColor: product.image || '#7B52DE', opacity: (product.stock === 0 || product.isAvailable === false) ? 0.4 : 1 }} />
+                        )}
+                        {(product.stock === 0 || product.isAvailable === false) && (
+                          <div className="absolute inset-0 bg-red-950/30 flex items-center justify-center">
+                            <span className="text-[6px] font-black tracking-tighter text-red-400 bg-black/80 px-0.5 border border-red-500/30">OOS</span>
+                          </div>
+                        )}
+                      </div>
                       <div className="flex-1 overflow-hidden">
-                        <div className="flex items-center justify-between">
-                          <h4 className="truncate text-xs font-bold uppercase tracking-wide text-white">
-                            {product.name}
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className={`truncate text-xs font-bold uppercase tracking-wide flex items-center gap-1.5 ${
+                            (product.stock === 0 || product.isAvailable === false) ? 'text-red-400 line-through' : 'text-white'
+                          }`}>
+                            <span>{product.name}</span>
                           </h4>
-                          <span className="text-xs font-black text-[#7B52DE]">
-                            ${product.price.toLocaleString('es-CO')}
-                          </span>
+                          {(product.stock === 0 || product.isAvailable === false) ? (
+                            <span className="text-[8px] font-black text-red-400 uppercase tracking-wider bg-red-500/10 border border-red-500/30 px-1 shrink-0">
+                              Agotado
+                            </span>
+                          ) : (
+                            <span className="text-xs font-black text-[#A78BFA] shrink-0">
+                              ${product.price.toLocaleString('es-CO')}
+                            </span>
+                          )}
                         </div>
-                        <p className="truncate text-[10px] uppercase font-bold tracking-wider text-white/40">
+                        <p className="truncate text-[10px] uppercase font-bold tracking-wider text-white/40 mt-0.5">
                           {product.brand} · {product.categoryLabel}
                         </p>
                       </div>
@@ -218,18 +234,35 @@ export default function Header({ cartCount, onOpenCart, onSelectProduct, product
                       onClick={() => handleSelectResult(product)}
                       className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-white/5"
                     >
-                      <div
-                        className="h-8 w-8 shrink-0 rounded shadow-inner"
-                        style={{ background: product.image }}
-                      />
+                      {/* Product dynamic image or color representation */}
+                      <div className="h-8 w-8 shrink-0 rounded border border-white/10 bg-black overflow-hidden flex items-center justify-center relative">
+                        {product.image && (product.image.includes('.') || product.image.includes('/') || product.image.startsWith('data:')) ? (
+                          <img src={product.image} className={`h-full w-full object-cover ${(product.stock === 0 || product.isAvailable === false) ? 'grayscale opacity-40' : ''}`} alt="" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="h-4 w-2 border border-white/20" style={{ backgroundColor: product.image || '#7B52DE', opacity: (product.stock === 0 || product.isAvailable === false) ? 0.4 : 1 }} />
+                        )}
+                        {(product.stock === 0 || product.isAvailable === false) && (
+                          <div className="absolute inset-0 bg-red-950/30 flex items-center justify-center">
+                            <span className="text-[5px] font-black text-red-400 bg-black/80 px-0.5">OOS</span>
+                          </div>
+                        )}
+                      </div>
                       <div className="flex-1 overflow-hidden">
-                        <div className="flex items-center justify-between">
-                          <h4 className="truncate text-xs font-semibold text-white">
+                        <div className="flex items-center justify-between gap-1">
+                          <h4 className={`truncate text-xs font-semibold ${
+                            (product.stock === 0 || product.isAvailable === false) ? 'text-red-400 line-through' : 'text-white'
+                          }`}>
                             {product.name}
                           </h4>
-                          <span className="text-xs font-bold text-[#7B52DE]">
-                            ${product.price.toLocaleString('es-CO')}
-                          </span>
+                          {(product.stock === 0 || product.isAvailable === false) ? (
+                            <span className="text-[7px] font-black text-red-400 uppercase tracking-wide bg-red-500/10 border border-red-500/30 px-1">
+                              Agotado
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-[#A78BFA]">
+                              ${product.price.toLocaleString('es-CO')}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </button>

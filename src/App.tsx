@@ -25,6 +25,127 @@ const verifyAdminPassword = (password: string): boolean => {
   return true;
 };
 
+const ADMIN_TEMPLATES = [
+  {
+    name: 'WAKA TRIPLE MANGO 10K',
+    brand: 'Waka',
+    category: 'vapers',
+    categoryLabel: 'Vapers',
+    price: 65000,
+    originalPrice: 80000,
+    stock: 15,
+    puffs: 10000,
+    nicotine: '5%',
+    battery: '650mAh (Recargable Tipo-C)',
+    capacity: '18ml',
+    description: 'Vapeador de alta capacidad con pantalla inteligente de batería y líquido. Flujo de aire ajustable y resistencia de malla integrada para una producción de vapor y fidelidad de sabor insuperables.',
+    features: [
+      'Resistencia Dual Mesh de alta definición',
+      'Pantalla indicadora de batería y líquido',
+      'Puerto de carga rápida USB Tipo-C',
+      'Flujo de aire ajustable en la base'
+    ],
+    colors: [
+      { name: 'Fresa Kiwi', hex: '#FF4B72', image: '' },
+      { name: 'Menta Fresca', hex: '#00F5D4', image: '' }
+    ]
+  },
+  {
+    name: 'EASE DYNAMIC 6000',
+    brand: 'Ease',
+    category: 'vapers',
+    categoryLabel: 'Vapers',
+    price: 45000,
+    originalPrice: 55000,
+    stock: 15,
+    puffs: 6000,
+    nicotine: '5%',
+    battery: '500mAh (Recargable)',
+    capacity: '12ml',
+    description: 'Dispositivo compacto y portátil de caladas continuas. Diseño ergonómico con sabores frutales súper intensos creados con sales de nicotina premium.',
+    features: [
+      'Boquilla ergonómica ultrasuave',
+      'Resistencia de malla súper optimizada',
+      'Portabilidad extrema y peso pluma',
+      'Sabores intensificados de larga duración'
+    ],
+    colors: [
+      { name: 'Sandía Ice', hex: '#FF3366', image: '' }
+    ]
+  },
+  {
+    name: 'POD RECARGABLE DISPOSITIVO',
+    brand: 'Caliburn',
+    category: 'capsulas',
+    categoryLabel: 'Cápsulas',
+    price: 85000,
+    originalPrice: 110000,
+    stock: 8,
+    puffs: undefined,
+    nicotine: 'N/A',
+    battery: '690mAh (Batería de larga duración)',
+    capacity: '2ml',
+    description: 'Sistema de cápsula recargable premium. Ideal para vapear sales de nicotina con máxima fidelidad de sabor, regulación de aire y activación por calada o botón.',
+    features: [
+      'Activación por botón o calada automática',
+      'Resistencias reemplazables de gran sabor',
+      'Indicador LED de batería tricolor',
+      'Estructura de aleación de aluminio ultrarresistente'
+    ],
+    colors: [
+      { name: 'Negro Calavera', hex: '#212121', image: '' },
+      { name: 'Azul Aurora', hex: '#4169E1', image: '' }
+    ]
+  },
+  {
+    name: 'CÁPSULA SELLADA SABORIZADA',
+    brand: 'Importado',
+    category: 'capsulas',
+    categoryLabel: 'Cápsulas',
+    price: 25000,
+    originalPrice: 30000,
+    stock: 20,
+    puffs: undefined,
+    nicotine: '3%',
+    battery: 'N/A',
+    capacity: '2ml',
+    description: 'Cápsulas de repuesto selladas herméticamente. Compatibilidad garantizada y antifugas absolutas con bobina de cerámica para mayor pureza.',
+    features: [
+      'Tecnología antifugas de triple sellado',
+      'Bobina cerámica de grado médico',
+      'Empaque de aluminio sellado al vacío',
+      'Sales de nicotina premium importadas'
+    ],
+    colors: [
+      { name: 'Arándano Fresa', hex: '#8A2BE2', image: '' }
+    ]
+  },
+  {
+    name: 'BATERÍA LÁPIZ ROSCA 510',
+    brand: 'Smiss',
+    category: 'baterias',
+    categoryLabel: 'Baterías',
+    price: 35000,
+    originalPrice: 45000,
+    stock: 10,
+    puffs: undefined,
+    nicotine: '0%',
+    battery: '350mAh (Voltaje Variable)',
+    capacity: 'Rosca 510',
+    description: 'Batería universal tipo lápiz para cartuchos de rosca 510. Voltaje variable de tres niveles para personalizar tu experiencia de vapeo con indicador LED.',
+    features: [
+      'Compatibilidad universal con rosca 510',
+      'Voltaje variable ajustable (3 clicks)',
+      'Precalentamiento automático (2 clicks)',
+      'Cargador USB inteligente incluido'
+    ],
+    colors: [
+      { name: 'Negro Mate', hex: '#1C1C1C', image: '' },
+      { name: 'Plata Metálica', hex: '#C0C0C0', image: '' }
+    ]
+  }
+];
+
 export default function App() {
   // STATE MANAGEMENT
   const [isAgeVerified, setIsAgeVerified] = useState<boolean>(() => {
@@ -269,7 +390,8 @@ export default function App() {
     });
   }, []);
 
-  const handleSaveProduct = useCallback(async () => {
+  const handleSaveProduct = useCallback(async (keepFormOpen: any = false) => {
+    const shouldKeepOpen = keepFormOpen === true;
     if (isAdminSaving) return;
     const errors: string[] = [];
 
@@ -342,8 +464,19 @@ export default function App() {
     setIsAdminSaving(true);
     try {
       await setDoc(doc(db, 'products', finalProduct.id), finalProduct);
-      setEditingId(null);
-      setEditForm({});
+      if (shouldKeepOpen) {
+        const nextId = 'prod-' + Date.now();
+        setEditingId(nextId);
+        setEditForm({
+          ...editForm,
+          id: nextId,
+          name: '',
+          colors: [{ name: 'Nuevo Sabor', hex: '#7B52DE', image: '' }]
+        });
+      } else {
+        setEditingId(null);
+        setEditForm({});
+      }
     } catch (err) {
       console.error('Error saving product:', err);
       handleFirestoreError(err, OperationType.WRITE, `products/${finalProduct.id}`);
@@ -611,6 +744,7 @@ export default function App() {
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveItem}
         onSendWhatsApp={handleSendWhatsApp}
+        products={products}
       />
 
       {/* PRODUCT EXPAND AREA MODAL */}
@@ -947,23 +1081,11 @@ export default function App() {
                 <div className="flex-1 flex flex-col border-t border-white/5 md:border-t-0 pt-6 md:pt-0 overflow-y-auto max-h-[500px] md:max-h-[50vh]">
                   {editingId ? (
                     <div className="space-y-4 pr-1">
-                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                        <span className="text-[10px] font-mono font-bold text-[#A78BFA] uppercase tracking-widest">
-                          {products.find(p => p.id === editForm.id) ? 'Editando Datos de Producto' : 'Creando Producto Nuevo'}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={handleSaveProduct}
-                            disabled={isAdminSaving}
-                            className="flex items-center gap-1.5 bg-[#7B52DE] hover:bg-[#8B5CF6] text-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isAdminSaving ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Save className="h-3 w-3" />
-                            )}
-                            <span>{isAdminSaving ? 'Guardando...' : 'Guardar'}</span>
-                          </button>
+                      <div className="flex flex-col gap-2 border-b border-white/5 pb-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold text-[#A78BFA] uppercase tracking-widest">
+                            {products.find(p => p.id === editForm.id) ? 'Editando Datos de Producto' : 'Creando Producto Nuevo'}
+                          </span>
                           <button
                             onClick={() => {
                               setEditingId(null);
@@ -974,7 +1096,86 @@ export default function App() {
                             Cerrar
                           </button>
                         </div>
+
+                        {/* ACTION BUTTONS GRID */}
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <button
+                            onClick={() => handleSaveProduct(false)}
+                            disabled={isAdminSaving}
+                            className="flex items-center gap-1.5 bg-[#7B52DE] hover:bg-[#8B5CF6] text-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isAdminSaving ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Save className="h-3 w-3" />
+                            )}
+                            <span>Guardar y Cerrar</span>
+                          </button>
+
+                          {!products.find(p => p.id === editForm.id) && (
+                            <button
+                              onClick={() => handleSaveProduct(true)}
+                              disabled={isAdminSaving}
+                              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Guarda este producto y prepara el formulario para agregar otro en la misma categoría ágilmente"
+                            >
+                              {isAdminSaving ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-3 w-3 text-emerald-300" />
+                              )}
+                              <span>Guardar y Agregar Otro</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
+
+                      {/* TEMPLATE QUICK LOAD SELECTOR PANEL */}
+                      {!products.find(p => p.id === editForm.id) && (
+                        <div className="bg-[#7B52DE]/10 border border-[#7B52DE]/20 p-3 rounded-none flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="h-4.5 w-4.5 text-[#A78BFA] shrink-0 animate-pulse" />
+                            <div>
+                              <span className="text-[10px] font-mono font-black text-white uppercase tracking-wider block">⚡ ¿Agregar rápido? Cargar Plantilla</span>
+                              <span className="text-[8px] font-mono text-slate-400 block">Pre-rellena el vaper, cápsula o batería con datos promedio en 1 click.</span>
+                            </div>
+                          </div>
+                          <select
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '') return;
+                              const t = ADMIN_TEMPLATES[Number(val)];
+                              if (!t) return;
+                              setEditForm({
+                                ...editForm,
+                                name: t.name,
+                                brand: t.brand,
+                                category: t.category,
+                                categoryLabel: t.categoryLabel,
+                                price: t.price,
+                                originalPrice: t.originalPrice,
+                                stock: t.stock,
+                                puffs: t.puffs,
+                                nicotine: t.nicotine,
+                                battery: t.battery,
+                                capacity: t.capacity,
+                                description: t.description,
+                                features: [...t.features],
+                                colors: JSON.parse(JSON.stringify(t.colors)),
+                                isAvailable: true,
+                                isNew: true
+                              });
+                            }}
+                            className="text-[9px] font-mono font-black uppercase tracking-widest bg-[#0c0a1a] text-white border border-[#7B52DE]/30 px-3 py-1.5 outline-none focus:border-[#8B5CF6] cursor-pointer"
+                            defaultValue=""
+                          >
+                            <option value="">-- CARGAR PLANTILLA --</option>
+                            {ADMIN_TEMPLATES.map((t, idx) => (
+                              <option key={idx} value={idx}>{t.name} ({t.brand})</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
