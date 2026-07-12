@@ -107,7 +107,7 @@ export default function Hero({ onExploreClick, onWhatsAppConsult, promoProduct, 
                     <img
                       src={activeImage}
                       alt={activeName}
-                      className="aspect-[4/3] w-full object-contain p-3 transition-transform duration-700 hover:scale-[1.03]"
+                      className="aspect-[4/3] w-full object-cover transition-transform duration-700 hover:scale-[1.03]"
                       referrerPolicy="no-referrer"
                       onError={() => setHeroError(true)}
                     />

@@ -12,7 +12,7 @@ import { PRODUCTS } from './data';
 import Logo from './components/Logo';
 import AgeVerificationGate from './components/AgeVerificationGate';
 import { db, OperationType, handleFirestoreError } from './firebase';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, getDoc } from 'firebase/firestore';
 
 // Obscured verification helper to protect the admin pass "2026W4ve." from plain-text exposure
 const verifyAdminPassword = (password: string): boolean => {
@@ -190,6 +190,42 @@ export default function App() {
             await setDoc(doc(db, 'products', item.id), seedItem);
           }
           console.log('Seeding completed successfully!');
+        } else {
+          // Iterate over all default products and seed them if they are missing from Firestore
+          const existingIds = new Set(snapshot.docs.map(doc => doc.id));
+          for (const item of PRODUCTS) {
+            if (!existingIds.has(item.id)) {
+              console.log(`Seeding missing default product to Firestore: ${item.id}`);
+              const seedItem = {
+                ...item,
+                isAvailable: item.isAvailable !== false
+              };
+              await setDoc(doc(db, 'products', item.id), seedItem);
+            } else if (item.id === 'ace-ultra-premium-2ml' || item.id === 'kit-destilado-thc-nacional') {
+              // Ensure critical details for these products are up to date in the database
+              const docRef = doc(db, 'products', item.id);
+              const docSnap = snapshot.docs.find(d => d.id === item.id);
+              if (docSnap) {
+                const currentData = docSnap.data();
+                if (
+                  currentData.price !== item.price ||
+                  currentData.originalPrice !== item.originalPrice ||
+                  currentData.image !== item.image ||
+                  currentData.category !== item.category
+                ) {
+                  console.log(`Updating details for ${item.id} in Firestore to match config...`);
+                  await setDoc(docRef, {
+                    ...currentData,
+                    price: item.price,
+                    originalPrice: item.originalPrice,
+                    image: item.image,
+                    category: item.category,
+                    categoryLabel: item.categoryLabel
+                  }, { merge: true });
+                }
+              }
+            }
+          }
         }
       } catch (err) {
         console.error('Error during initial products check/seeding:', err);
@@ -234,7 +270,7 @@ export default function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
 
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'vapers' | 'capsulas' | 'baterias'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'vapers' | 'capsulas' | 'baterias' | 'disposables'>('all');
   const [selectedBrand, setSelectedBrand] = useState<string>('Todos');
   const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc'>('popular');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -252,6 +288,7 @@ export default function App() {
     { id: 'vapers', label: 'Vapers' },
     { id: 'capsulas', label: 'Cápsulas' },
     { id: 'baterias', label: 'Baterías' },
+    { id: 'disposables', label: 'Disposables' },
   ] as const;
 
   // HANDLERS
@@ -606,7 +643,7 @@ export default function App() {
       <Hero
         onExploreClick={scrollToCatalog}
         onWhatsAppConsult={handleSendWhatsApp}
-        promoProduct={products.find(p => p.id === 'lemonade-premium-destilado-combo') || products[0] || null}
+        promoProduct={products.find(p => p.id === 'kit-destilado-thc-nacional') || products[0] || null}
         onPromoClick={(prod) => setSelectedProduct(prod)}
       />
 
@@ -1240,7 +1277,8 @@ export default function App() {
                               const labelMap: Record<string, string> = {
                                 vapers: 'Vapers',
                                 capsulas: 'Cápsulas',
-                                baterias: 'Baterías'
+                                baterias: 'Baterías',
+                                disposables: 'Disposables'
                               };
                               setEditForm({ ...editForm, category: val, categoryLabel: labelMap[val] });
                             }}
@@ -1249,6 +1287,7 @@ export default function App() {
                             <option value="vapers">Vapers (Cigarrillo)</option>
                             <option value="capsulas">Cápsulas / Pods</option>
                             <option value="baterias">Baterías / Dispositivo</option>
+                            <option value="disposables">Disposables</option>
                           </select>
                         </div>
                       </div>

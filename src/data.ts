@@ -22,6 +22,58 @@ export const FAQ_ITEMS: FAQItem[] = [
 
 export const PRODUCTS: Product[] = [
   {
+    id: 'ace-ultra-premium-2ml',
+    name: 'ACE ULTRA PREMIUM 2ML',
+    brand: 'Ace Ultra Premium',
+    category: 'disposables',
+    categoryLabel: 'Disposables',
+    price: 99900,
+    originalPrice: 106000,
+    rating: 4.9,
+    reviewsCount: 165,
+    description: 'Línea de desechables ultra premium con 2ml de destilado premium, sabor intenso y gran potencia. Diseño recargable para aprovechar hasta la última gota.',
+    image: 'https://i.ibb.co/fYJZmZst/disposable-1.jpg',
+    features: ['2ML de destilado premium', 'Dispositivo recargable tipo C', 'Sabor potente y de alta duración', 'Sin rellenos, puro extracto'],
+    colors: [
+      { name: 'Estándar', hex: '#E5C158', image: 'https://i.ibb.co/fYJZmZst/disposable-1.jpg' }
+    ],
+    nicotine: '0% (THC Puro)',
+    battery: '400mAh (Recargable)',
+    capacity: '2.0 ml',
+    stock: 12,
+    isPopular: true,
+    isNew: true,
+    reviews: [
+      { id: 'ace1', name: 'Santiago R.', rating: 5, comment: 'El mejor sabor de la línea, excelente golpe y el diseño es comodísimo.', date: '2026-06-20', verified: true }
+    ]
+  },
+  {
+    id: 'kit-destilado-thc-nacional',
+    name: 'KIT DESTILADO THC NACIONAL 1ML',
+    brand: 'Nacional',
+    category: 'capsulas',
+    categoryLabel: 'Cápsulas',
+    price: 79900,
+    originalPrice: 90000,
+    rating: 4.9,
+    reviewsCount: 148,
+    description: 'Kit premium con destilado de THC 100% nacional de la más alta pureza (1ML). Incluye batería recargable y cápsula lista para usar.',
+    image: 'https://i.ibb.co/v6RdQwmY/KIT-DESTILADO-THC-NACIONAL-1-ML.jpg',
+    features: ['Destilado premium 100% nacional', 'Kit completo listo para usar', 'Compatible con rosca estándar 510', 'Batería recargable con regulador'],
+    colors: [
+      { name: 'Estándar', hex: '#7B52DE', image: 'https://i.ibb.co/v6RdQwmY/KIT-DESTILADO-THC-NACIONAL-1-ML.jpg' }
+    ],
+    nicotine: '0% (THC Puro)',
+    battery: '350mAh (Recargable)',
+    capacity: '1.0 ml',
+    stock: 15,
+    isPopular: true,
+    isNew: true,
+    reviews: [
+      { id: 'kd1', name: 'Andrés M.', rating: 5, comment: 'Excelente calidad y la batería dura un montón, muy recomendado.', date: '2026-06-15', verified: true }
+    ]
+  },
+  {
     id: 'capsula-destilado-nacional',
     name: 'CÁPSULA NACIONAL 1ML',
     brand: 'Nacional',
