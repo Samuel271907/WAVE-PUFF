@@ -201,30 +201,49 @@ export default function App() {
                 isAvailable: item.isAvailable !== false
               };
               await setDoc(doc(db, 'products', item.id), seedItem);
-            } else if (item.id === 'ace-ultra-premium-2ml' || item.id === 'kit-destilado-thc-nacional') {
+            } else if (['ace-ultra-premium-2ml', 'kit-destilado-thc-nacional', 'ease-8000-puffs'].includes(item.id)) {
               // Ensure critical details for these products are up to date in the database
               const docRef = doc(db, 'products', item.id);
               const docSnap = snapshot.docs.find(d => d.id === item.id);
               if (docSnap) {
                 const currentData = docSnap.data();
+                const needsColorFix = !Array.isArray(currentData.colors) || 
+                                     currentData.colors.length !== item.colors.length || 
+                                     currentData.colors.some((c: any, i: number) => !c || c.name !== item.colors[i].name || c.hex !== item.colors[i].hex || c.image !== item.colors[i].image);
+
                 if (
                   currentData.price !== item.price ||
                   currentData.originalPrice !== item.originalPrice ||
                   currentData.image !== item.image ||
-                  currentData.category !== item.category
+                  currentData.category !== item.category ||
+                  currentData.stock <= 0 || // Ensure positive stock so it doesn't show as Agotado
+                  needsColorFix
                 ) {
                   console.log(`Updating details for ${item.id} in Firestore to match config...`);
                   await setDoc(docRef, {
                     ...currentData,
                     price: item.price,
-                    originalPrice: item.originalPrice,
+                    originalPrice: item.originalPrice !== undefined ? item.originalPrice : null,
                     image: item.image,
                     category: item.category,
-                    categoryLabel: item.categoryLabel
+                    categoryLabel: item.categoryLabel,
+                    colors: item.colors,
+                    stock: currentData.stock <= 0 ? item.stock : currentData.stock,
+                    isAvailable: true
                   }, { merge: true });
                 }
               }
             }
+          }
+
+          // Force remove the other legacy individual vaper products so they are consolidated into ease-8000-puffs
+          if (existingIds.has('waka-triple-mango-10k')) {
+            console.log('Deleting legacy product waka-triple-mango-10k from Firestore...');
+            await deleteDoc(doc(db, 'products', 'waka-triple-mango-10k'));
+          }
+          if (existingIds.has('ease-dynamic-6000')) {
+            console.log('Deleting legacy product ease-dynamic-6000 from Firestore...');
+            await deleteDoc(doc(db, 'products', 'ease-dynamic-6000'));
           }
         }
       } catch (err) {
