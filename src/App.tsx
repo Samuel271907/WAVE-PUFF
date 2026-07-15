@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SlidersHorizontal, ArrowUpDown, ChevronDown, CheckCircle, Smartphone, MapPin, Sparkles, Flame, Percent, Lock, Unlock, Settings, Trash2, Plus, RotateCcw, Edit2, AlertCircle, X, Save, Search, EyeOff, Eye, Loader2 } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, ChevronDown, CheckCircle, Smartphone, MapPin, Sparkles, Flame, Percent, Lock, Unlock, Settings, Trash2, Plus, RotateCcw, Edit2, AlertCircle, X, Save, Search, EyeOff, Eye, Loader2, Copy, Upload, ArrowUp, ArrowDown } from 'lucide-react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductCard from './components/ProductCard';
@@ -160,6 +160,9 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [adminSearch, setAdminSearch] = useState('');
+  const [adminCategoryFilter, setAdminCategoryFilter] = useState<'all' | 'vapers' | 'capsulas' | 'baterias' | 'disposables' | 'gummies'>('all');
+  const [adminStockFilter, setAdminStockFilter] = useState<'all' | 'instock' | 'outofstock' | 'lowstock'>('all');
+  const [adminSortBy, setAdminSortBy] = useState<'name-asc' | 'name-desc' | 'stock-asc' | 'stock-desc' | 'price-asc' | 'price-desc'>('name-asc');
   const [isAdminSaving, setIsAdminSaving] = useState(false);
 
   // PRODUCTS STATE & PERSISTENCE
@@ -190,61 +193,6 @@ export default function App() {
             await setDoc(doc(db, 'products', item.id), seedItem);
           }
           console.log('Seeding completed successfully!');
-        } else {
-          // Iterate over all default products and seed them if they are missing from Firestore
-          const existingIds = new Set(snapshot.docs.map(doc => doc.id));
-          for (const item of PRODUCTS) {
-            if (!existingIds.has(item.id)) {
-              console.log(`Seeding missing default product to Firestore: ${item.id}`);
-              const seedItem = {
-                ...item,
-                isAvailable: item.isAvailable !== false
-              };
-              await setDoc(doc(db, 'products', item.id), seedItem);
-            } else if (['ace-ultra-premium-2ml', 'kit-destilado-thc-nacional', 'ease-8000-puffs'].includes(item.id)) {
-              // Ensure critical details for these products are up to date in the database
-              const docRef = doc(db, 'products', item.id);
-              const docSnap = snapshot.docs.find(d => d.id === item.id);
-              if (docSnap) {
-                const currentData = docSnap.data();
-                const needsColorFix = !Array.isArray(currentData.colors) || 
-                                     currentData.colors.length !== item.colors.length || 
-                                     currentData.colors.some((c: any, i: number) => !c || c.name !== item.colors[i].name || c.hex !== item.colors[i].hex || c.image !== item.colors[i].image);
-
-                if (
-                  currentData.price !== item.price ||
-                  currentData.originalPrice !== item.originalPrice ||
-                  currentData.image !== item.image ||
-                  currentData.category !== item.category ||
-                  currentData.stock <= 0 || // Ensure positive stock so it doesn't show as Agotado
-                  needsColorFix
-                ) {
-                  console.log(`Updating details for ${item.id} in Firestore to match config...`);
-                  await setDoc(docRef, {
-                    ...currentData,
-                    price: item.price,
-                    originalPrice: item.originalPrice !== undefined ? item.originalPrice : null,
-                    image: item.image,
-                    category: item.category,
-                    categoryLabel: item.categoryLabel,
-                    colors: item.colors,
-                    stock: currentData.stock <= 0 ? item.stock : currentData.stock,
-                    isAvailable: true
-                  }, { merge: true });
-                }
-              }
-            }
-          }
-
-          // Force remove the other legacy individual vaper products so they are consolidated into ease-8000-puffs
-          if (existingIds.has('waka-triple-mango-10k')) {
-            console.log('Deleting legacy product waka-triple-mango-10k from Firestore...');
-            await deleteDoc(doc(db, 'products', 'waka-triple-mango-10k'));
-          }
-          if (existingIds.has('ease-dynamic-6000')) {
-            console.log('Deleting legacy product ease-dynamic-6000 from Firestore...');
-            await deleteDoc(doc(db, 'products', 'ease-dynamic-6000'));
-          }
         }
       } catch (err) {
         console.error('Error during initial products check/seeding:', err);
@@ -289,7 +237,7 @@ export default function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
 
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'vapers' | 'capsulas' | 'baterias' | 'disposables'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'vapers' | 'capsulas' | 'baterias' | 'disposables' | 'gummies'>('all');
   const [selectedBrand, setSelectedBrand] = useState<string>('Todos');
   const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc'>('popular');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -308,6 +256,7 @@ export default function App() {
     { id: 'capsulas', label: 'Cápsulas' },
     { id: 'baterias', label: 'Baterías' },
     { id: 'disposables', label: 'Disposables' },
+    { id: 'gummies', label: 'Gummies' },
   ] as const;
 
   // HANDLERS
@@ -420,6 +369,28 @@ export default function App() {
       setIsAdminSaving(false);
     }
   }, [products, editingId, isAdminSaving]);
+
+  const moveFlavorUp = useCallback((index: number) => {
+    if (index === 0) return;
+    setEditForm((prev) => {
+      const updated = [...(prev.colors || [])];
+      const temp = updated[index];
+      updated[index] = updated[index - 1];
+      updated[index - 1] = temp;
+      return { ...prev, colors: updated };
+    });
+  }, []);
+
+  const moveFlavorDown = useCallback((index: number) => {
+    setEditForm((prev) => {
+      const updated = [...(prev.colors || [])];
+      if (index === updated.length - 1) return { ...prev };
+      const temp = updated[index];
+      updated[index] = updated[index + 1];
+      updated[index + 1] = temp;
+      return { ...prev, colors: updated };
+    });
+  }, []);
 
   const startCreating = useCallback(() => {
     const newId = 'prod-' + Date.now();
@@ -559,6 +530,19 @@ export default function App() {
       }
     }
   }, [editingId, isAdminSaving]);
+
+  const handleDuplicateProduct = useCallback((prod: Product) => {
+    const duplicatedId = 'prod-' + Date.now();
+    const duplicated: Product = {
+      ...prod,
+      id: duplicatedId,
+      name: `${prod.name} (COPIA)`,
+      isNew: true,
+      sku: prod.sku ? `${prod.sku}-COPY` : undefined,
+    };
+    setEditingId(duplicatedId);
+    setEditForm(duplicated);
+  }, []);
 
   const handleResetToDefaults = useCallback(async () => {
     if (isAdminSaving) return;
@@ -877,7 +861,7 @@ export default function App() {
       {/* ADMIN WORKSPACE SYSTEM PANEL MODAL */}
       {isAdminOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-6xl border border-white/10 bg-[#0c0a1a] p-6 shadow-2xl flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-6xl border border-white/10 bg-[#0c0a1a] p-4 md:p-6 shadow-2xl flex flex-col max-h-[95vh] overflow-y-auto">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
@@ -982,51 +966,155 @@ export default function App() {
               </div>
             ) : (
               /* Verified Workspace Panel View */
-              <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-6 min-h-[400px]">
+              <div className="flex-grow flex flex-col gap-6 overflow-visible">
                 
-                {/* Product List Selector Column */}
-                <div className="w-full md:w-5/12 flex flex-col border-r border-white/5 pr-0 md:pr-6 overflow-hidden max-h-[450px] md:max-h-[50vh]">
-                  <div className="flex items-center justify-between mb-3 shrink-0">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-mono font-bold uppercase text-[#A78BFA] tracking-wider">Dispositivos ({products.length})</span>
-                      <span className="text-[8px] text-slate-500 font-mono">Haz clic en el estado para alternarlo rápido</span>
-                    </div>
-                    <button
-                      onClick={startCreating}
-                      className="flex items-center gap-1 rounded bg-[#7B52DE]/20 hover:bg-[#7B52DE]/30 border border-[#7B52DE]/30 px-2 py-1 text-[9px] font-black text-white uppercase cursor-pointer"
-                    >
-                      <Plus className="h-3 w-3" />
-                      <span>Agregar</span>
-                    </button>
+                {/* 3. DASHBOARD METRICS SECTION */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 bg-white/[0.01] border border-white/5 p-4 shrink-0 rounded-none">
+                  <div className="bg-[#050505] border border-white/10 p-3 flex flex-col justify-between">
+                    <span className="text-[9px] font-mono font-black uppercase text-slate-500 tracking-wider">Total Productos</span>
+                    <span className="text-xl font-black text-white mt-1">{products.length}</span>
                   </div>
+                  <div className="bg-[#050505] border border-white/10 p-3 flex flex-col justify-between">
+                    <span className="text-[9px] font-mono font-black uppercase text-slate-500 tracking-wider">Disponibles / Activos</span>
+                    <span className="text-xl font-black text-emerald-400 mt-1">
+                      {products.filter(p => p.isAvailable !== false && p.stock > 0).length}
+                    </span>
+                  </div>
+                  <div className="bg-[#050505] border border-white/10 p-3 flex flex-col justify-between">
+                    <span className="text-[9px] font-mono font-black uppercase text-slate-500 tracking-wider">Sin Stock / Agotados</span>
+                    <span className="text-xl font-black text-red-400 mt-1">
+                      {products.filter(p => p.stock === 0).length}
+                    </span>
+                  </div>
+                  <div className="bg-[#050505] border border-white/10 p-3 flex flex-col justify-between">
+                    <span className="text-[9px] font-mono font-black uppercase text-slate-500 tracking-wider">Valor Inventario</span>
+                    <span className="text-base font-black text-[#A78BFA] mt-1 truncate">
+                      ${products.reduce((acc, p) => acc + (p.price * p.stock), 0).toLocaleString('es-CO')}
+                    </span>
+                  </div>
+                </div>
 
-                  {/* Search filter input */}
-                  <div className="relative mb-3 shrink-0">
-                    <input
-                      type="text"
-                      placeholder="Buscar producto por nombre o marca..."
-                      value={adminSearch}
-                      onChange={(e) => setAdminSearch(e.target.value)}
-                      className="w-full rounded-none border border-white/10 bg-black/40 pl-8 pr-3 py-1.5 text-xs text-white outline-none focus:border-[#7B52DE]"
-                    />
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-500" />
-                    {adminSearch && (
+                {/* TWO-COLUMN ADMIN PANEL */}
+                <div className="flex-1 overflow-visible flex flex-col md:flex-row gap-6 min-h-0">
+                  
+                  {/* Product List Selector Column */}
+                  <div className="w-full md:w-5/12 flex flex-col border-b md:border-b-0 md:border-r border-white/5 pb-6 md:pb-0 pr-0 md:pr-6 overflow-visible max-h-none">
+                    <div className="flex items-center justify-between mb-3 shrink-0">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-mono font-bold uppercase text-[#A78BFA] tracking-wider">Catálogo ({products.length})</span>
+                        <span className="text-[8px] text-slate-500 font-mono">Haz clic para editar un producto</span>
+                      </div>
                       <button
-                        onClick={() => setAdminSearch('')}
-                        className="absolute right-2.5 top-1.5 text-slate-400 hover:text-white text-[10px] font-mono cursor-pointer"
+                        onClick={startCreating}
+                        className="flex items-center gap-1 rounded bg-[#7B52DE]/20 hover:bg-[#7B52DE]/30 border border-[#7B52DE]/30 px-2 py-1 text-[9px] font-black text-white uppercase cursor-pointer"
                       >
-                        [limpiar]
+                        <Plus className="h-3 w-3" />
+                        <span>Agregar</span>
                       </button>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="space-y-2 flex-grow overflow-y-auto pr-1">
-                    {products
-                      .filter((p) => {
-                        if (!adminSearch.trim()) return true;
-                        const query = adminSearch.toLowerCase();
-                        return p.name.toLowerCase().includes(query) || p.brand.toLowerCase().includes(query);
-                      })
+                    {/* Search filter input */}
+                    <div className="relative mb-3 shrink-0">
+                      <input
+                        type="text"
+                        placeholder="Buscar por nombre o marca..."
+                        value={adminSearch}
+                        onChange={(e) => setAdminSearch(e.target.value)}
+                        className="w-full rounded-none border border-white/10 bg-black/40 pl-8 pr-3 py-1.5 text-xs text-white outline-none focus:border-[#7B52DE]"
+                      />
+                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-500" />
+                      {adminSearch && (
+                        <button
+                          onClick={() => setAdminSearch('')}
+                          className="absolute right-2.5 top-1.5 text-slate-400 hover:text-white text-[10px] font-mono cursor-pointer"
+                        >
+                          [limpiar]
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Category, Stock, and Sort Filters Grid */}
+                    <div className="grid grid-cols-3 gap-1.5 mb-3 shrink-0 text-[10px] font-mono">
+                      {/* Category Filter */}
+                      <div className="flex flex-col">
+                        <label className="text-[8px] text-slate-500 uppercase tracking-wider mb-1">Categoría</label>
+                        <select
+                          value={adminCategoryFilter}
+                          onChange={(e) => setAdminCategoryFilter(e.target.value as any)}
+                          className="w-full bg-[#050505] border border-white/10 text-white p-1 text-[9px] outline-none focus:border-[#7B52DE] cursor-pointer"
+                        >
+                          <option value="all">TODAS</option>
+                          <option value="vapers">VAPERS</option>
+                          <option value="capsulas">CÁPSULAS</option>
+                          <option value="baterias">BATERÍAS</option>
+                          <option value="disposables">DISPOSABLES</option>
+                          <option value="gummies">GUMMIES</option>
+                        </select>
+                      </div>
+
+                      {/* Stock Filter */}
+                      <div className="flex flex-col">
+                        <label className="text-[8px] text-slate-500 uppercase tracking-wider mb-1">Stock</label>
+                        <select
+                          value={adminStockFilter}
+                          onChange={(e) => setAdminStockFilter(e.target.value as any)}
+                          className="w-full bg-[#050505] border border-white/10 text-white p-1 text-[9px] outline-none focus:border-[#7B52DE] cursor-pointer"
+                        >
+                          <option value="all">TODOS</option>
+                          <option value="instock">CON STOCK</option>
+                          <option value="outofstock">SIN STOCK</option>
+                          <option value="lowstock">STOCK BAJO (≤5)</option>
+                        </select>
+                      </div>
+
+                      {/* Sort Selector */}
+                      <div className="flex flex-col">
+                        <label className="text-[8px] text-slate-500 uppercase tracking-wider mb-1">Ordenar por</label>
+                        <select
+                          value={adminSortBy}
+                          onChange={(e) => setAdminSortBy(e.target.value as any)}
+                          className="w-full bg-[#050505] border border-white/10 text-white p-1 text-[9px] outline-none focus:border-[#7B52DE] cursor-pointer"
+                        >
+                          <option value="name-asc">NOMBRE (A-Z)</option>
+                          <option value="name-desc">NOMBRE (Z-A)</option>
+                          <option value="stock-asc">STOCK (MENOR)</option>
+                          <option value="stock-desc">STOCK (MAYOR)</option>
+                          <option value="price-asc">PRECIO (MENOR)</option>
+                          <option value="price-desc">PRECIO (MAYOR)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 flex-grow overflow-y-auto max-h-[400px] pr-1">
+                      {products
+                        .filter((p) => {
+                          // 1. Search Query
+                          if (adminSearch.trim()) {
+                            const query = adminSearch.toLowerCase();
+                            if (!p.name.toLowerCase().includes(query) && !p.brand.toLowerCase().includes(query)) {
+                              return false;
+                            }
+                          }
+                          // 2. Category Filter
+                          if (adminCategoryFilter !== 'all' && p.category !== adminCategoryFilter) {
+                            return false;
+                          }
+                          // 3. Stock Filter
+                          if (adminStockFilter === 'instock' && p.stock <= 0) return false;
+                          if (adminStockFilter === 'outofstock' && p.stock > 0) return false;
+                          if (adminStockFilter === 'lowstock' && (p.stock > 5 || p.stock <= 0)) return false;
+
+                          return true;
+                        })
+                        .sort((a, b) => {
+                          if (adminSortBy === 'name-asc') return a.name.localeCompare(b.name);
+                          if (adminSortBy === 'name-desc') return b.name.localeCompare(a.name);
+                          if (adminSortBy === 'stock-asc') return a.stock - b.stock;
+                          if (adminSortBy === 'stock-desc') return b.stock - a.stock;
+                          if (adminSortBy === 'price-asc') return a.price - b.price;
+                          if (adminSortBy === 'price-desc') return b.price - a.price;
+                          return 0;
+                        })
                       .map((p) => {
                         const isCurrentlyActive = p.isAvailable !== false;
                         const hasStock = p.stock > 0;
@@ -1090,6 +1178,17 @@ export default function App() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    handleDuplicateProduct(p);
+                                  }}
+                                  disabled={isAdminSaving}
+                                  title="Duplicar Producto (Copia Rápida)"
+                                  className="p-1 text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     startEditing(p);
                                   }}
                                   disabled={isAdminSaving}
@@ -1134,7 +1233,7 @@ export default function App() {
                 </div>
 
                 {/* Editor form panel */}
-                <div className="flex-1 flex flex-col border-t border-white/5 md:border-t-0 pt-6 md:pt-0 overflow-y-auto max-h-[500px] md:max-h-[50vh]">
+                <div className="flex-1 flex flex-col border-t border-white/5 md:border-t-0 pt-6 md:pt-0 overflow-visible">
                   {editingId ? (
                     <div className="space-y-4 pr-1">
                       <div className="flex flex-col gap-2 border-b border-white/5 pb-3">
@@ -1255,6 +1354,16 @@ export default function App() {
                           />
                         </div>
                         <div>
+                          <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1.5">SKU (Opcional)</label>
+                          <input
+                            type="text"
+                            value={editForm.sku || ''}
+                            onChange={(e) => setEditForm({ ...editForm, sku: e.target.value })}
+                            className="w-full rounded-none border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-[#7B52DE]"
+                            placeholder="Ej. WP-WAKA-10K"
+                          />
+                        </div>
+                        <div>
                           <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1.5">Precio de Venta ($ COP) *</label>
                           <input
                             type="number"
@@ -1297,7 +1406,8 @@ export default function App() {
                                 vapers: 'Vapers',
                                 capsulas: 'Cápsulas',
                                 baterias: 'Baterías',
-                                disposables: 'Disposables'
+                                disposables: 'Disposables',
+                                gummies: 'Gummies'
                               };
                               setEditForm({ ...editForm, category: val, categoryLabel: labelMap[val] });
                             }}
@@ -1307,6 +1417,7 @@ export default function App() {
                             <option value="capsulas">Cápsulas / Pods</option>
                             <option value="baterias">Baterías / Dispositivo</option>
                             <option value="disposables">Disposables</option>
+                            <option value="gummies">Gummies</option>
                           </select>
                         </div>
                       </div>
@@ -1325,7 +1436,7 @@ export default function App() {
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest">URL de la Foto o Imagen Base64</label>
-                          <span className="text-[8px] text-[#A78BFA] font-mono">Pega link o código base64</span>
+                          <span className="text-[8px] text-[#A78BFA] font-mono">Pega link, código base64 o sube un archivo</span>
                         </div>
                         <textarea
                           rows={2}
@@ -1334,6 +1445,36 @@ export default function App() {
                           className="w-full rounded-none border border-white/10 bg-black/40 p-3 text-xs text-white font-mono outline-none focus:border-[#7B52DE]"
                           placeholder="Pega la URL de la imagen ej. https://... o un Base64..."
                         />
+                        <div className="mt-2 flex items-center gap-2">
+                          <label className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 text-[9px] font-mono uppercase tracking-wider text-white cursor-pointer transition-colors">
+                            <Upload className="h-3.5 w-3.5 text-[#A78BFA]" />
+                            <span>Subir Archivo de Imagen</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setEditForm({ ...editForm, image: reader.result as string });
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </label>
+                          {editForm.image && (
+                            <button
+                              type="button"
+                              onClick={() => setEditForm({ ...editForm, image: '' })}
+                              className="border border-red-500/30 hover:border-red-500/50 hover:bg-red-500/10 text-red-400 px-3 py-1.5 text-[9px] font-mono uppercase tracking-wider cursor-pointer"
+                            >
+                              Eliminar Imagen
+                            </button>
+                          )}
+                        </div>
                         {editForm.image && (
                           <div className="mt-2 flex items-center gap-3 bg-white/5 border border-white/10 p-2">
                             <span className="text-[9px] font-mono text-slate-400">Vista Previa:</span>
@@ -1403,22 +1544,48 @@ export default function App() {
                             <span>Agregar Sabor</span>
                           </button>
                         </div>
-                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                           {(editForm.colors || []).map((color, idx) => (
-                            <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-white/[0.02] border border-white/5 p-2 items-center">
-                              <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <input
-                                  type="text"
-                                  placeholder="Nombre del Sabor"
-                                  value={color.name}
-                                  onChange={(e) => {
-                                    const updatedColors = [...(editForm.colors || [])];
-                                    updatedColors[idx] = { ...color, name: e.target.value };
-                                    setEditForm({ ...editForm, colors: updatedColors });
-                                  }}
-                                  className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
-                                />
-                                <div className="flex items-center gap-1.5 w-full">
+                            <div key={idx} className="flex flex-col bg-white/[0.02] border border-white/5 p-3 gap-3">
+                              {/* Row 1: Left / Right Actions & Flavor Name + Color */}
+                              <div className="flex flex-wrap items-center gap-3">
+                                {/* Up/Down order buttons */}
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => moveFlavorUp(idx)}
+                                    disabled={idx === 0}
+                                    title="Subir Sabor"
+                                    className="p-1 border border-white/10 hover:border-white/20 text-slate-300 disabled:opacity-20 cursor-pointer"
+                                  >
+                                    <ArrowUp className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => moveFlavorDown(idx)}
+                                    disabled={idx === (editForm.colors || []).length - 1}
+                                    title="Bajar Sabor"
+                                    className="p-1 border border-white/10 hover:border-white/20 text-slate-300 disabled:opacity-20 cursor-pointer"
+                                  >
+                                    <ArrowDown className="h-3 w-3" />
+                                  </button>
+                                </div>
+
+                                <div className="flex-1 min-w-[120px]">
+                                  <input
+                                    type="text"
+                                    placeholder="Nombre del Sabor"
+                                    value={color.name}
+                                    onChange={(e) => {
+                                      const updatedColors = [...(editForm.colors || [])];
+                                      updatedColors[idx] = { ...color, name: e.target.value };
+                                      setEditForm({ ...editForm, colors: updatedColors });
+                                    }}
+                                    className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
+                                  />
+                                </div>
+
+                                <div className="flex items-center gap-1 shrink-0">
                                   <input
                                     type="color"
                                     value={color.hex.startsWith('#') && color.hex.length === 7 ? color.hex : '#7B52DE'}
@@ -1431,40 +1598,106 @@ export default function App() {
                                   />
                                   <input
                                     type="text"
-                                    placeholder="#HEX (ej. #7B52DE)"
+                                    placeholder="#HEX"
                                     value={color.hex}
                                     onChange={(e) => {
                                       const updatedColors = [...(editForm.colors || [])];
                                       updatedColors[idx] = { ...color, hex: e.target.value };
                                       setEditForm({ ...editForm, colors: updatedColors });
                                     }}
-                                    className="flex-1 rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
+                                    className="w-20 rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
                                   />
                                 </div>
-                                <input
-                                  type="text"
-                                  placeholder="URL Foto individual (Opcional)"
-                                  value={color.image || ''}
-                                  onChange={(e) => {
-                                    const updatedColors = [...(editForm.colors || [])];
-                                    updatedColors[idx] = { ...color, image: e.target.value };
+
+                                <button
+                                  type="button"
+                                  disabled={(editForm.colors || []).length <= 1}
+                                  onClick={() => {
+                                    const updatedColors = (editForm.colors || []).filter((_, i) => i !== idx);
                                     setEditForm({ ...editForm, colors: updatedColors });
                                   }}
-                                  className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
-                                />
+                                  className="text-slate-400 hover:text-red-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors cursor-pointer p-1 shrink-0 ml-auto"
+                                  title="Eliminar Sabor"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                disabled={(editForm.colors || []).length <= 1}
-                                onClick={() => {
-                                  const updatedColors = (editForm.colors || []).filter((_, i) => i !== idx);
-                                  setEditForm({ ...editForm, colors: updatedColors });
-                                }}
-                                className="text-slate-400 hover:text-red-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors cursor-pointer p-1"
-                                title="Eliminar Sabor"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+
+                              {/* Row 2: Image URL, Upload file option, Set Main Image, and Preview */}
+                              <div className="flex flex-col sm:flex-row items-center gap-3 border-t border-white/5 pt-2">
+                                <div className="flex-1 w-full flex flex-col gap-1">
+                                  <input
+                                    type="text"
+                                    placeholder="URL Foto individual (Opcional)"
+                                    value={color.image || ''}
+                                    onChange={(e) => {
+                                      const updatedColors = [...(editForm.colors || [])];
+                                      updatedColors[idx] = { ...color, image: e.target.value };
+                                      setEditForm({ ...editForm, colors: updatedColors });
+                                    }}
+                                    className="w-full rounded-none border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-[#7B52DE]"
+                                  />
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <label className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 text-[8px] font-mono uppercase text-white cursor-pointer transition-colors">
+                                      <Upload className="h-3 w-3 text-[#A78BFA]" />
+                                      <span>Sube Foto</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                              const updatedColors = [...(editForm.colors || [])];
+                                              updatedColors[idx] = { ...color, image: reader.result as string };
+                                              setEditForm({ ...editForm, colors: updatedColors });
+                                            };
+                                            reader.readAsDataURL(file);
+                                          }
+                                        }}
+                                      />
+                                    </label>
+
+                                    {color.image && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const updatedColors = [...(editForm.colors || [])];
+                                          updatedColors[idx] = { ...color, image: '' };
+                                          setEditForm({ ...editForm, colors: updatedColors });
+                                        }}
+                                        className="border border-red-500/10 hover:border-red-500/30 hover:bg-red-500/5 text-red-400 px-2 py-1 text-[8px] font-mono uppercase cursor-pointer"
+                                      >
+                                        Limpiar
+                                      </button>
+                                    )}
+
+                                    {color.image && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditForm({ ...editForm, image: color.image });
+                                        }}
+                                        className="bg-[#7B52DE]/10 hover:bg-[#7B52DE]/20 border border-[#7B52DE]/30 text-[#A78BFA] px-2 py-1 text-[8px] font-mono uppercase cursor-pointer"
+                                        title="Establece esta imagen como la foto principal que los clientes verán en la tarjeta del producto"
+                                      >
+                                        Hacer Principal ⭐
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Preview Thumbnail */}
+                                <div className="h-12 w-12 bg-black border border-white/10 shrink-0 overflow-hidden flex items-center justify-center">
+                                  {color.image ? (
+                                    <img src={color.image} alt="preview" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    <span className="text-[7px] text-slate-600 font-mono text-center">Sin foto</span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1584,6 +1817,7 @@ export default function App() {
                 </div>
 
               </div>
+            </div>
             )}
 
             {/* Panel footer operations */}

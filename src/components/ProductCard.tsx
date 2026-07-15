@@ -78,7 +78,7 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
             {/* Quick Specifications Overlay */}
             <div className="absolute bottom-3 left-0 right-0 z-20 text-center">
               <span className="rounded-none bg-[#050505]/90 border border-white/10 py-1 px-3 text-[8px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
-                {product.puffs ? `${product.puffs} Puffs` : product.capacity}
+                {product.category === 'vapers' && product.puffs ? `${product.puffs} Puffs` : product.capacity}
               </span>
             </div>
           </div>
@@ -105,7 +105,7 @@ export default function ProductCard({ product, onAddToCart, onSelectProduct }: P
             {/* Quick Specifications Overlay */}
             <div className="absolute bottom-3 left-0 right-0 text-center">
               <span className="rounded-none bg-[#050505]/90 border border-white/10 py-1 px-3 text-[8px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
-                {product.puffs ? `${product.puffs} Puffs` : product.capacity}
+                {product.category === 'vapers' && product.puffs ? `${product.puffs} Puffs` : product.capacity}
               </span>
             </div>
           </div>

@@ -31,7 +31,7 @@ export const PRODUCTS: Product[] = [
     originalPrice: 106000,
     rating: 4.9,
     reviewsCount: 165,
-    description: 'Línea de desechables ultra premium con 2ml de destilado premium, sabor intenso y gran potencia. Diseño recargable para aprovechar hasta la última gota.',
+    description: 'Línea de disposables ultra premium con 2ml de destilado premium, sabor intenso y gran potencia. Diseño recargable para aprovechar hasta la última gota.',
     image: 'https://i.ibb.co/fYJZmZst/disposable-1.jpg',
     features: ['2ML de destilado premium', 'Dispositivo recargable tipo C', 'Sabor potente y de alta duración', 'Sin rellenos, puro extracto'],
     colors: [

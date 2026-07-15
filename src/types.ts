@@ -11,7 +11,7 @@ export interface Product {
   id: string;
   name: string;
   brand: string;
-  category: 'vapers' | 'capsulas' | 'baterias' | 'disposables';
+  category: 'vapers' | 'capsulas' | 'baterias' | 'disposables' | 'gummies';
   categoryLabel: string;
   price: number;
   originalPrice?: number;
@@ -26,6 +26,7 @@ export interface Product {
   battery?: string;
   capacity?: string;
   stock: number;
+  sku?: string;
   isAvailable?: boolean;
   isPopular: boolean;
   isNew: boolean;

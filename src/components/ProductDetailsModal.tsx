@@ -130,7 +130,7 @@ export default function ProductDetailsModal({
                       referrerPolicy="no-referrer" 
                       className="h-full w-full object-cover rounded-none animate-fade-in"
                     />
-                    {product.puffs && (
+                    {product.category === 'vapers' && product.puffs && (
                       <span className="absolute bottom-4 z-20 rounded-none bg-[#050505]/90 backdrop-blur-sm border border-white/10 py-1.5 px-3.5 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
                         {product.puffs.toLocaleString()} PUFFS
                       </span>
@@ -155,7 +155,7 @@ export default function ProductDetailsModal({
                         <div className="h-2.5 w-full bg-white/10" />
                       </div>
                       
-                      {product.puffs && (
+                      {product.category === 'vapers' && product.puffs && (
                         <span className="mt-5 rounded-none bg-[#050505] border border-white/10 py-1 px-3.5 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#A78BFA]">
                           {product.puffs.toLocaleString()} PUFFS
                         </span>
@@ -276,12 +276,17 @@ export default function ProductDetailsModal({
                 {activeTab === 'specs' ? (
                   <div className="space-y-4">
                     <div className="w-full">
-                      {product.puffs && (
+                      {product.category === 'vapers' && product.puffs ? (
                         <div className="rounded-none bg-white/5 p-4 border border-white/10">
                           <span className="font-mono text-[9px] text-white/30 uppercase tracking-widest block mb-1">Rendimiento</span>
                           <div className="text-sm font-black uppercase text-white mt-0.5">Hasta {product.puffs.toLocaleString()} Puffs</div>
                         </div>
-                      )}
+                      ) : product.capacity ? (
+                        <div className="rounded-none bg-white/5 p-4 border border-white/10">
+                          <span className="font-mono text-[9px] text-white/30 uppercase tracking-widest block mb-1">Capacidad</span>
+                          <div className="text-sm font-black uppercase text-white mt-0.5">{product.capacity}</div>
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="mt-4">
